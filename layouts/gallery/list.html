@@ -1,0 +1,21 @@
+{{ define "main" }}
+  <h1>Gallery</h1>
+
+  {{ $validExts := slice ".jpg" ".jpeg" ".png" ".webp" ".gif" }}
+  {{ $photos := readDir "static/photos" }}
+  {{ range $photos }}
+    {{ if not .IsDir }}
+      {{ $filename := .Name }}
+      {{ $ext := strings.ToLower (path.Ext $filename) }}
+      {{ if in $validExts $ext }}
+        {{ $meta := index $.Site.Data.photos $filename }}
+        <figure>
+          <img src="/photos/{{ $filename }}" alt="{{ $filename }}">
+          {{ with $meta }}
+            <figcaption>{{ .description }}</figcaption>
+          {{ end }}
+        </figure>
+      {{ end }}
+    {{ end }}
+  {{ end }}
+{{ end }}
