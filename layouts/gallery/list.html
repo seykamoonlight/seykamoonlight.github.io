@@ -1,6 +1,5 @@
 {{ define "main" }}
-  <h1>Gallery</h1>
-
+<div class="gallery">
   {{ $validExts := slice ".jpg" ".jpeg" ".png" ".webp" ".gif" }}
   {{ $photos := readDir "static/photos" }}
   {{ range $photos }}
@@ -9,13 +8,44 @@
       {{ $ext := strings.ToLower (path.Ext $filename) }}
       {{ if in $validExts $ext }}
         {{ $meta := index $.Site.Data.photos $filename }}
-        <figure>
+        <figure data-seed="{{ $filename | md5 }}">
           <img src="/photos/{{ $filename }}" alt="{{ $filename }}">
-          {{ with $meta }}
-            <figcaption>{{ .description }}</figcaption>
-          {{ end }}
+          {{ with $meta }}<figcaption>{{ .description }}</figcaption>{{ end }}
         </figure>
       {{ end }}
     {{ end }}
   {{ end }}
+</div>
+
+<script>
+const lightbox = document.createElement("div");
+lightbox.className = "lightbox";
+document.body.appendChild(lightbox);
+
+document.querySelectorAll("figure").forEach(fig => {
+  const seed = fig.dataset.seed;
+  const a = parseInt(seed.substring(0, 8), 16);
+  const b = parseInt(seed.substring(8, 16), 16);
+  const c = parseInt(seed.substring(16, 24), 16);
+  const rotation = (a % 900) / 100 - 4.5;
+  const tx = (b % 160) - 80;
+  const ty = (c % 160) - 80;
+  fig.style.transform = `rotate(${rotation}deg) translate(${tx}px, ${ty}px)`;
+
+  fig.addEventListener("click", () => {
+    const clone = fig.cloneNode(true);
+    clone.style.transform = "none";
+    lightbox.innerHTML = "";
+    lightbox.appendChild(clone);
+    lightbox.classList.add("active");
+  });
+});
+
+lightbox.addEventListener("click", (e) => {
+  if (e.target === lightbox) {
+    lightbox.classList.remove("active");
+  }
+});
+
+</script>
 {{ end }}
