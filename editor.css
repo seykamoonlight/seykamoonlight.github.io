@@ -22,7 +22,7 @@ body {
   z-index: 100;
 }
 
-#toolbar label, #toolbar span {
+#toolbar span {
   color: #888;
   font-size: 11px;
   text-transform: uppercase;
@@ -40,6 +40,7 @@ body {
   padding: 5px 12px;
   cursor: pointer;
   transition: background 0.15s;
+  white-space: nowrap;
 }
 #toolbar button:hover { background: #333; }
 #toolbar button.primary {
@@ -51,22 +52,21 @@ body {
 
 #load-photos { display: none; }
 
-#rotation-control {
+#size-control, #rotation-control {
   display: none;
   align-items: center;
   gap: 8px;
-  margin-left: 16px;
   padding-left: 16px;
   border-left: 1px solid #333;
 }
-#rotation-control.visible { display: flex; }
+#size-control.visible, #rotation-control.visible { display: flex; }
 
-#rotation-slider {
-  width: 120px;
+#size-slider, #rotation-slider {
+  width: 100px;
   accent-color: #e8e0d4;
 }
 
-#rotation-value {
+#size-value, #rotation-value {
   color: #ccc;
   font-size: 11px;
   width: 36px;
@@ -83,36 +83,42 @@ body {
   margin-left: auto;
   color: #555;
   font-size: 11px;
+  flex-shrink: 0;
 }
 
 /* ── canvas wrapper ── */
 #canvas-wrapper {
   flex: 1;
-  overflow-x: scroll;
-  overflow-y: hidden;
-  position: relative;
-  cursor: default;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: #333 #1a1a1a;
+  display: flex;
+  justify-content: center;
+  background: #141414;
 }
 
+/* ── canvas ── */
 #canvas {
-  height: 100%;
-  min-width: 100vw;
+  width: 660px; /* COLUMN_W (420) + bleed (120) × 2 */
+  flex-shrink: 0;
+  min-height: 100%;
   position: relative;
+  background: #ccc8c2; /* outside column: slightly darker */
+}
+
+/* ── column guide — the actual paper area ── */
+#column-guide {
+  position: absolute;
+  top: 0;
+  bottom: 0;
   background: #e8e4de;
   background-image:
-    radial-gradient(circle at 20% 50%, rgba(255,255,255,0.15) 0%, transparent 60%),
-    radial-gradient(circle at 80% 30%, rgba(0,0,0,0.05) 0%, transparent 50%);
-}
-
-/* subtle paper grain */
-#canvas::after {
-  content: '';
-  position: absolute;
-  inset: 0;
+    radial-gradient(circle at 40% 30%, rgba(255,255,255,0.18) 0%, transparent 60%);
+  border-left: 1px solid rgba(0,0,0,0.10);
+  border-right: 1px solid rgba(0,0,0,0.10);
   pointer-events: none;
-  opacity: 0.03;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size: 200px 200px;
+  z-index: 0;
 }
 
 /* ── photo elements ── */
@@ -121,6 +127,7 @@ body {
   cursor: grab;
   user-select: none;
   touch-action: none;
+  z-index: 1;
 }
 .photo:active { cursor: grabbing; }
 
@@ -137,12 +144,11 @@ body {
 
 .frame img {
   display: block;
-  max-width: 180px;
-  max-height: 180px;
-  object-fit: contain;
+  width: 100%;
+  height: auto;
 }
 
-/* ── drop zone hint ── */
+/* ── hint ── */
 #hint {
   position: absolute;
   inset: 0;
@@ -152,14 +158,17 @@ body {
   justify-content: center;
   gap: 12px;
   pointer-events: none;
+  z-index: 0;
 }
 #hint.hidden { display: none; }
+
 #hint-text {
   color: #aaa09a;
   font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 0.15em;
 }
+
 #hint-sub {
   color: #c8c0b8;
   font-size: 11px;

@@ -1,61 +1,120 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+:root {
+  --panel-w: 220px;
+  --bg: #e8e4de;
+}
+
 html, body {
   height: 100%;
-  overflow: hidden;
-  background: #e8e4de;
+  background: var(--bg);
+  font-family: 'Courier New', monospace;
 }
 
 body {
   background-image:
-    radial-gradient(circle at 15% 60%, rgba(255,255,255,0.2) 0%, transparent 55%),
-    radial-gradient(circle at 85% 25%, rgba(0,0,0,0.04) 0%, transparent 50%);
+    radial-gradient(circle at 20% 60%, rgba(255,255,255,0.22) 0%, transparent 55%),
+    radial-gradient(circle at 80% 20%, rgba(0,0,0,0.04) 0%, transparent 50%);
 }
 
-/* ── scroll container ── */
-#viewport {
-  width: 100vw;
+/* ── left panel ── */
+#panel {
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  width: var(--panel-w);
+  background: var(--bg);
+  border-right: 1px solid rgba(0,0,0,0.08);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  padding: 48px 28px;
+}
+
+#site-title {
+  font-size: 13px;
+  font-weight: normal;
+  letter-spacing: 0.18em;
+  text-transform: lowercase;
+  color: #2a2a2a;
+  margin-bottom: 10px;
+}
+
+#site-intro {
+  font-size: 10px;
+  color: #999;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* ── menu button (mobile only) ── */
+#menu-btn {
+  display: none;
+  position: fixed;
+  top: 18px; left: 18px;
+  z-index: 200;
+  background: none;
+  border: none;
+  cursor: pointer;
+  flex-direction: column;
+  gap: 5px;
+  padding: 6px;
+}
+
+#menu-btn span {
+  display: block;
+  width: 20px;
+  height: 1.5px;
+  background: #555;
+  transition: background 0.2s;
+}
+
+#menu-btn:hover span { background: #222; }
+
+/* ── scroll area ── */
+#scroll-area {
+  margin-left: var(--panel-w);
   height: 100vh;
-  overflow-x: scroll;
-  overflow-y: hidden;
-  position: relative;
+  overflow-y: scroll;
+  overflow-x: hidden;
   scrollbar-width: none;
+  display: flex;
+  justify-content: center;
 }
-#viewport::-webkit-scrollbar { display: none; }
 
-#canvas {
-  height: 100vh;
+#scroll-area::-webkit-scrollbar { display: none; }
+
+/* ── column ── */
+#column {
+  width: 420px;
+  flex-shrink: 0;
   position: relative;
-  min-width: 100vw;
+  overflow: visible;
+  padding-bottom: 200px;
 }
 
 /* ── photos ── */
 .photo {
   position: absolute;
   cursor: pointer;
-  transition: filter 0.3s ease;
 }
+
+.photo:hover { z-index: 50 !important; }
 
 .frame {
   background: white;
   padding: 8px;
-  box-shadow: 3px 3px 14px rgba(0,0,0,0.22);
+  box-shadow: 3px 3px 14px rgba(0,0,0,0.20);
   transition: box-shadow 0.2s ease;
 }
 
 .photo:hover .frame {
-  box-shadow: 5px 5px 24px rgba(0,0,0,0.32);
-}
-
-.photo:hover {
-  z-index: 50 !important;
+  box-shadow: 6px 8px 28px rgba(0,0,0,0.28);
 }
 
 .frame img {
   display: block;
-  max-width: 180px;
-  max-height: 180px;
-  object-fit: contain;
+  width: 100%;
+  height: auto;
 }
 
 /* ── lightbox ── */
@@ -70,25 +129,24 @@ body {
   justify-content: center;
   visibility: hidden;
   pointer-events: none;
-  transition: background 0.4s ease;
+  transition: background 0.35s ease;
 }
 
 #lightbox.active {
   visibility: visible;
   pointer-events: all;
   background: rgba(0,0,0,0.88);
-  transition: background 0.4s ease;
 }
 
 #lightbox .frame {
-  padding: 16px;
+  padding: 12px;
   cursor: default;
   opacity: 0;
-  transform: scale(0.92);
-  transition: opacity 0.4s ease, transform 0.4s ease;
-  display: inline-flex;
+  transform: scale(0.94);
+  transition: opacity 0.35s ease, transform 0.35s ease;
   max-width: 90vw;
   max-height: 90vh;
+  display: inline-flex;
 }
 
 #lightbox.active .frame {
@@ -97,15 +155,15 @@ body {
 }
 
 #lightbox .frame img {
-  max-width: calc(90vw - 32px);
-  max-height: calc(90vh - 32px);
+  max-width: calc(90vw - 24px);
+  max-height: calc(90vh - 24px);
   width: auto;
   height: auto;
   object-fit: contain;
   display: block;
 }
 
-/* ── error state ── */
+/* ── error ── */
 #error {
   display: none;
   position: fixed;
@@ -115,10 +173,34 @@ body {
   flex-direction: column;
   gap: 12px;
   color: #999;
-  font-family: 'Courier New', monospace;
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.12em;
 }
 #error.visible { display: flex; }
-#error span { color: #666; font-size: 11px; }
+#error span { color: #777; font-size: 11px; }
+
+/* ── mobile ── */
+@media (max-width: 700px) {
+  #panel {
+    transform: translateX(-100%);
+    transition: transform 0.28s ease;
+    box-shadow: none;
+  }
+
+  #panel.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(0,0,0,0.12);
+  }
+
+  #menu-btn { display: flex; }
+
+  #scroll-area {
+    margin-left: 0;
+  }
+
+  #column {
+    width: 100%;
+    max-width: 420px;
+  }
+}

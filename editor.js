@@ -1,47 +1,72 @@
+const COLUMN_W = 420; // must match viewer.js
+
 const canvas = document.getElementById('canvas');
 const wrapper = document.getElementById('canvas-wrapper');
+const columnGuide = document.getElementById('column-guide');
 const hint = document.getElementById('hint');
 const statusEl = document.getElementById('status');
 const rotationSlider = document.getElementById('rotation-slider');
 const rotationValue = document.getElementById('rotation-value');
 const rotationControl = document.getElementById('rotation-control');
+const sizeSlider = document.getElementById('size-slider');
+const sizeValue = document.getElementById('size-value');
+const sizeControl = document.getElementById('size-control');
 const deleteBtn = document.getElementById('delete-btn');
 
-// photos: { el, filename, x (% from right), y (% of height), rotation }
+// photos: { el, filename, url, x, y, size, rotation }
+// x: center of photo as fraction of COLUMN_W from column left (0.5 = centered, can go negative/over 1 for bleed)
+// y: top of photo in COLUMN_W units from top
+// size: width of photo as fraction of COLUMN_W
 const photos = [];
 let selected = null;
 let dragging = null;
 let dragOffX = 0, dragOffY = 0;
 
-// ── canvas width grows to fit ──
-function ensureCanvasWidth() {
-  canvas.style.width = Math.max(canvas.offsetWidth, window.innerWidth * 3) + 'px';
+function getColLeft() {
+  return (canvas.offsetWidth - COLUMN_W) / 2;
 }
 
-// ── upload a File to the server, show immediately via blob URL ──
+function updateGuide() {
+  columnGuide.style.left = getColLeft() + 'px';
+  columnGuide.style.width = COLUMN_W + 'px';
+}
+
+function ensureCanvasHeight() {
+  let minH = wrapper.offsetHeight + 200;
+  photos.forEach(p => {
+    const photoH = p.el.offsetHeight || p.size * COLUMN_W;
+    minH = Math.max(minH, p.y * COLUMN_W + photoH + 200);
+  });
+  canvas.style.minHeight = minH + 'px';
+}
+
+// ── upload a file to the server, show immediately via blob URL ──
 async function handlePhotoFile(file) {
   if (!file.type.startsWith('image/')) return;
-  if (photos.find(p => p.filename === file.name)) return; // already on canvas
+  if (photos.find(p => p.filename === file.name)) return;
 
-  // show immediately while uploading
   const blobUrl = URL.createObjectURL(file);
-  const photo = spawnPhoto(file.name, blobUrl, 0.5, 0.5, 0);
+  const photo = spawnPhoto(file.name, blobUrl, 0.5, nextY(), 0.65, 0);
   updateStatus();
+  ensureCanvasHeight();
 
   try {
     const res = await fetch(`/upload-photo?name=${encodeURIComponent(file.name)}`, {
       method: 'POST',
       body: file
     });
-    if (!res.ok) throw new Error('upload failed');
-    // switch to permanent server URL
-    const serverUrl = 'photos/' + file.name;
-    photo.url = serverUrl;
-    photo.el.querySelector('img').src = serverUrl;
+    if (!res.ok) throw new Error();
+    photo.url = 'photos/' + file.name;
+    photo.el.querySelector('img').src = photo.url;
     URL.revokeObjectURL(blobUrl);
   } catch (_) {
     updateStatus('upload failed – is the server running?');
   }
+}
+
+function nextY() {
+  if (photos.length === 0) return 0.3;
+  return Math.max(...photos.map(p => p.y + p.size * 1.5)) + 0.1;
 }
 
 // ── file picker ──
@@ -50,16 +75,15 @@ document.getElementById('load-photos').addEventListener('change', e => {
   e.target.value = '';
 });
 
-// ── drag & drop anywhere on the page ──
+// ── drag & drop ──
 document.addEventListener('dragover', e => e.preventDefault());
 document.addEventListener('drop', e => {
   e.preventDefault();
   Array.from(e.dataTransfer.files).forEach(handlePhotoFile);
 });
 
-function spawnPhoto(filename, url, xPct, yPct, rotation) {
+function spawnPhoto(filename, url, x, y, size, rotation) {
   hint.classList.add('hidden');
-  ensureCanvasWidth();
 
   const el = document.createElement('div');
   el.className = 'photo';
@@ -70,19 +94,20 @@ function spawnPhoto(filename, url, xPct, yPct, rotation) {
   const img = document.createElement('img');
   img.src = url;
   img.draggable = false;
+  img.addEventListener('load', ensureCanvasHeight);
 
   frame.appendChild(img);
   el.appendChild(frame);
   canvas.appendChild(el);
 
-  const photo = { el, filename, url, x: xPct, y: yPct, rotation };
+  const photo = { el, filename, url, x, y, size, rotation };
   photos.push(photo);
 
   positionPhoto(photo);
   applyRotation(photo);
   bindDrag(el, photo);
 
-  el.addEventListener('click', (e) => {
+  el.addEventListener('click', e => {
     e.stopPropagation();
     selectPhoto(photo);
   });
@@ -91,12 +116,11 @@ function spawnPhoto(filename, url, xPct, yPct, rotation) {
 }
 
 function positionPhoto(photo) {
-  const cw = canvas.offsetWidth;
-  const ch = canvas.offsetHeight;
-  const px = cw - (photo.x * cw) - 100;
-  const py = photo.y * ch - 100;
-  photo.el.style.left = px + 'px';
-  photo.el.style.top = py + 'px';
+  const photoW = photo.size * COLUMN_W;
+  const cx = getColLeft() + photo.x * COLUMN_W;
+  photo.el.style.left = (cx - photoW / 2) + 'px';
+  photo.el.style.top = (photo.y * COLUMN_W) + 'px';
+  photo.el.style.width = photoW + 'px';
 }
 
 function applyRotation(photo) {
@@ -117,23 +141,23 @@ function bindDrag(el, photo) {
 
   el.addEventListener('pointermove', e => {
     if (dragging !== photo) return;
-    const wrapRect = wrapper.getBoundingClientRect();
-    const rawX = e.clientX - wrapRect.left + wrapper.scrollLeft - dragOffX;
-    const rawY = e.clientY - wrapRect.top - dragOffY;
+    const canvasRect = canvas.getBoundingClientRect();
+    const rawX = e.clientX - canvasRect.left - dragOffX;
+    const rawY = e.clientY - canvasRect.top - dragOffY;
     el.style.left = rawX + 'px';
     el.style.top = rawY + 'px';
   });
 
   el.addEventListener('pointerup', () => {
     if (dragging !== photo) return;
-    const cw = canvas.offsetWidth;
-    const ch = canvas.offsetHeight;
-    const px = parseFloat(el.style.left) + 100;
-    const py = parseFloat(el.style.top) + 100;
-    photo.x = (cw - px) / cw;
-    photo.y = py / ch;
+    const photoW = photo.size * COLUMN_W;
+    const left = parseFloat(el.style.left);
+    const top = parseFloat(el.style.top);
+    photo.x = (left + photoW / 2 - getColLeft()) / COLUMN_W;
+    photo.y = top / COLUMN_W;
     el.style.zIndex = selected === photo ? 100 : 1;
     dragging = null;
+    ensureCanvasHeight();
   });
 }
 
@@ -145,9 +169,15 @@ function selectPhoto(photo) {
   selected = photo;
   photo.el.classList.add('selected');
   photo.el.style.zIndex = 100;
+
   rotationSlider.value = photo.rotation;
   rotationValue.textContent = photo.rotation + '°';
   rotationControl.classList.add('visible');
+
+  sizeSlider.value = photo.size;
+  sizeValue.textContent = Math.round(photo.size * 100) + '%';
+  sizeControl.classList.add('visible');
+
   deleteBtn.classList.add('visible');
 }
 
@@ -158,6 +188,7 @@ function deselectAll() {
     selected = null;
   }
   rotationControl.classList.remove('visible');
+  sizeControl.classList.remove('visible');
   deleteBtn.classList.remove('visible');
 }
 
@@ -170,13 +201,21 @@ function onRotationChange() {
   applyRotation(selected);
 }
 
+function onSizeChange() {
+  if (!selected) return;
+  selected.size = parseFloat(sizeSlider.value);
+  sizeValue.textContent = Math.round(selected.size * 100) + '%';
+  positionPhoto(selected);
+  ensureCanvasHeight();
+}
+
 function deleteSelected() {
   if (!selected) return;
-  const idx = photos.indexOf(selected);
-  photos.splice(idx, 1);
+  photos.splice(photos.indexOf(selected), 1);
   selected.el.remove();
   selected = null;
   rotationControl.classList.remove('visible');
+  sizeControl.classList.remove('visible');
   deleteBtn.classList.remove('visible');
   updateStatus();
   if (photos.length === 0) hint.classList.remove('hidden');
@@ -190,7 +229,9 @@ function updateStatus(msg) {
     statusTimer = setTimeout(() => updateStatus(), 2000);
     return;
   }
-  statusEl.textContent = photos.length === 0 ? 'no photos loaded' : `${photos.length} photo${photos.length > 1 ? 's' : ''}`;
+  statusEl.textContent = photos.length === 0
+    ? 'no photos loaded'
+    : `${photos.length} photo${photos.length > 1 ? 's' : ''}`;
 }
 
 // ── layout ──
@@ -199,10 +240,11 @@ function parseLayout(text) {
   data.forEach(item => {
     const filename = item.file.replace(/^photos\//, '');
     if (photos.find(p => p.filename === filename)) return;
-    spawnPhoto(filename, item.file, item.x, item.y, item.rotation);
+    spawnPhoto(filename, item.file, item.x, item.y, item.size ?? 0.65, item.rotation);
   });
   updateStatus();
   hint.classList.add('hidden');
+  setTimeout(ensureCanvasHeight, 200);
 }
 
 function buildLayoutJson() {
@@ -210,6 +252,7 @@ function buildLayoutJson() {
     file: 'photos/' + p.filename,
     x: Math.round(p.x * 10000) / 10000,
     y: Math.round(p.y * 10000) / 10000,
+    size: Math.round(p.size * 1000) / 1000,
     rotation: p.rotation
   })), null, 2);
 }
@@ -238,7 +281,7 @@ async function loadLayout() {
   }
 }
 
-// ── Cmd+S shortcut ──
+// ── Cmd+S ──
 document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key === 's') {
     e.preventDefault();
@@ -246,12 +289,13 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// ── keep canvas sized on resize ──
+// ── resize ──
 window.addEventListener('resize', () => {
-  ensureCanvasWidth();
+  updateGuide();
   photos.forEach(positionPhoto);
 });
 
 // init
-canvas.style.width = (window.innerWidth * 3) + 'px';
+updateGuide();
+ensureCanvasHeight();
 loadLayout();

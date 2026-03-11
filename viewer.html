@@ -8,8 +8,22 @@
 </head>
 <body>
 
-<div id="viewport">
-  <div id="canvas"></div>
+<aside id="panel">
+  <div id="panel-inner">
+    <h1 id="site-title">seykamoonlight</h1>
+    <p id="site-intro">photography</p>
+    <nav id="site-nav">
+      <!-- navigation will come later -->
+    </nav>
+  </div>
+</aside>
+
+<button id="menu-btn" aria-label="Menu" onclick="togglePanel()">
+  <span></span><span></span><span></span>
+</button>
+
+<div id="scroll-area">
+  <div id="column"></div>
 </div>
 
 <div id="lightbox">
@@ -20,7 +34,7 @@
 
 <div id="error">
   No layout found
-  <span>serve this folder with: python3 -m http.server</span>
+  <span>serve this folder with: python3 server.py</span>
 </div>
 
 <script src="viewer.js"></script>

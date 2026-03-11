@@ -1,71 +1,74 @@
-const canvas = document.getElementById('canvas');
-const viewport = document.getElementById('viewport');
+const COLUMN_W = 420; // must match editor.js
+
+const column = document.getElementById('column');
 const lightbox = document.getElementById('lightbox');
 const lightboxImg = document.getElementById('lightbox-img');
 const lightboxFrame = lightbox.querySelector('.frame');
 const errorEl = document.getElementById('error');
 
 fetch('layout.json')
-  .then(r => {
-    if (!r.ok) throw new Error('not found');
-    return r.json();
-  })
+  .then(r => { if (!r.ok) throw new Error(); return r.json(); })
   .then(data => {
     if (!data.length) return;
 
-    // canvas width: enough to hold the leftmost photo with some margin
-    // x is % from right, so highest x value = furthest left
-    const maxX = Math.max(...data.map(p => p.x));
-    const canvasWidth = Math.max(window.innerWidth * 2, window.innerWidth / (1 - maxX) + 300);
-    canvas.style.width = canvasWidth + 'px';
+    const colW = column.offsetWidth || COLUMN_W;
 
     data.forEach(item => {
+      const size = item.size ?? 0.65;
+      const photoW = size * colW;
+      const left = item.x * colW - photoW / 2;
+      const top = item.y * colW;
+
       const el = document.createElement('div');
       el.className = 'photo';
+      el.style.width = photoW + 'px';
+      el.style.left = left + 'px';
+      el.style.top = top + 'px';
+      el.style.transform = `rotate(${item.rotation}deg)`;
+      el.style.zIndex = Math.floor(Math.random() * 10) + 1;
 
       const frame = document.createElement('div');
       frame.className = 'frame';
 
       const img = document.createElement('img');
       img.src = item.file;
-      img.alt = item.file;
+      img.alt = '';
       img.draggable = false;
+      img.loading = 'lazy';
+      img.addEventListener('load', updateColumnHeight);
 
       frame.appendChild(img);
       el.appendChild(frame);
-      canvas.appendChild(el);
-
-      // position: x is % from right edge
-      const px = canvasWidth - (item.x * canvasWidth) - 100;
-      const py = item.y * window.innerHeight - 100;
-      el.style.left = px + 'px';
-      el.style.top = py + 'px';
-      el.style.transform = `rotate(${item.rotation}deg)`;
-      el.style.zIndex = Math.floor(Math.random() * 10) + 1;
+      column.appendChild(el);
 
       el.addEventListener('click', () => openLightbox(item.file));
     });
-
-    // start scrolled to the right (newest photos)
-    viewport.scrollLeft = viewport.scrollWidth;
   })
-  .catch(() => {
-    errorEl.classList.add('visible');
+  .catch(() => errorEl.classList.add('visible'));
+
+function updateColumnHeight() {
+  let max = 0;
+  column.querySelectorAll('.photo').forEach(el => {
+    max = Math.max(max, el.offsetTop + el.offsetHeight);
   });
+  column.style.minHeight = (max + 200) + 'px';
+}
 
 // ── lightbox ──
 function openLightbox(src) {
   lightboxImg.src = src;
-  lightboxFrame.style.transform = 'none';
   lightbox.classList.add('active');
 }
 
 lightbox.addEventListener('click', e => {
-  if (e.target === lightbox) {
-    lightbox.classList.remove('active');
-  }
+  if (e.target === lightbox) lightbox.classList.remove('active');
 });
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') lightbox.classList.remove('active');
 });
+
+// ── panel toggle (mobile) ──
+function togglePanel() {
+  document.getElementById('panel').classList.toggle('open');
+}
