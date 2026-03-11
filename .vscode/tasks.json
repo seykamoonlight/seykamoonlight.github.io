@@ -1,0 +1,26 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start Server",
+      "type": "shell",
+      "command": "python3 server.py",
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Open Editor",
+      "type": "shell",
+      "command": "open http://localhost:8000/editor.html",
+      "presentation": { "reveal": "never", "panel": "new", "close": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Open Viewer",
+      "type": "shell",
+      "command": "open http://localhost:8000/viewer.html",
+      "presentation": { "reveal": "never", "panel": "new", "close": true },
+      "problemMatcher": []
+    }
+  ]
+}

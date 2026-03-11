@@ -1,0 +1,124 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: #e8e4de;
+}
+
+body {
+  background-image:
+    radial-gradient(circle at 15% 60%, rgba(255,255,255,0.2) 0%, transparent 55%),
+    radial-gradient(circle at 85% 25%, rgba(0,0,0,0.04) 0%, transparent 50%);
+}
+
+/* ── scroll container ── */
+#viewport {
+  width: 100vw;
+  height: 100vh;
+  overflow-x: scroll;
+  overflow-y: hidden;
+  position: relative;
+  scrollbar-width: none;
+}
+#viewport::-webkit-scrollbar { display: none; }
+
+#canvas {
+  height: 100vh;
+  position: relative;
+  min-width: 100vw;
+}
+
+/* ── photos ── */
+.photo {
+  position: absolute;
+  cursor: pointer;
+  transition: filter 0.3s ease;
+}
+
+.frame {
+  background: white;
+  padding: 8px;
+  box-shadow: 3px 3px 14px rgba(0,0,0,0.22);
+  transition: box-shadow 0.2s ease;
+}
+
+.photo:hover .frame {
+  box-shadow: 5px 5px 24px rgba(0,0,0,0.32);
+}
+
+.photo:hover {
+  z-index: 50 !important;
+}
+
+.frame img {
+  display: block;
+  max-width: 180px;
+  max-height: 180px;
+  object-fit: contain;
+}
+
+/* ── lightbox ── */
+#lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0);
+  z-index: 1000;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  visibility: hidden;
+  pointer-events: none;
+  transition: background 0.4s ease;
+}
+
+#lightbox.active {
+  visibility: visible;
+  pointer-events: all;
+  background: rgba(0,0,0,0.88);
+  transition: background 0.4s ease;
+}
+
+#lightbox .frame {
+  padding: 16px;
+  cursor: default;
+  opacity: 0;
+  transform: scale(0.92);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  display: inline-flex;
+  max-width: 90vw;
+  max-height: 90vh;
+}
+
+#lightbox.active .frame {
+  opacity: 1;
+  transform: scale(1);
+}
+
+#lightbox .frame img {
+  max-width: calc(90vw - 32px);
+  max-height: calc(90vh - 32px);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
+/* ── error state ── */
+#error {
+  display: none;
+  position: fixed;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 12px;
+  color: #999;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+#error.visible { display: flex; }
+#error span { color: #666; font-size: 11px; }
