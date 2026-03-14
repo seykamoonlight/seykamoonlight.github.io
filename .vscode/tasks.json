@@ -22,6 +22,14 @@
       "command": "open http://localhost:8000/",
       "presentation": { "reveal": "never", "panel": "new", "close": true },
       "problemMatcher": []
+    },
+    {
+      "label": "Publier sur gh-pages",
+      "type": "shell",
+      "command": "bash publish.sh",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "problemMatcher": []
     }
   ]
 }
