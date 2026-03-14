@@ -8,10 +8,11 @@ WORKTREE="$REPO/.gh-pages"
 # Créer la branche gh-pages si elle n'existe pas encore
 if ! git -C "$REPO" show-ref --quiet refs/heads/gh-pages; then
   echo "→ Création de la branche gh-pages..."
+  CURRENT=$(git -C "$REPO" rev-parse --abbrev-ref HEAD)
   git -C "$REPO" checkout --orphan gh-pages
   git -C "$REPO" rm -rf . --quiet
   git -C "$REPO" commit --allow-empty -q -m "init gh-pages"
-  git -C "$REPO" checkout -
+  git -C "$REPO" checkout "$CURRENT"
 fi
 
 # Créer le worktree si absent
@@ -45,6 +46,6 @@ fi
 git commit -q -m "deploy $(date '+%Y-%m-%d %H:%M')"
 
 echo "→ Push..."
-git push origin gh-pages
+git push --force origin gh-pages
 
 echo "✓ Déployé sur gh-pages"
