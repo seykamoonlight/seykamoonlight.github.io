@@ -2,23 +2,24 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Start Server",
+      "label": "photo/ — Start Server",
       "type": "shell",
       "command": "python3 server.py",
+      "options": { "cwd": "${workspaceFolder}/photo" },
       "presentation": { "reveal": "always", "panel": "dedicated" },
       "problemMatcher": []
     },
     {
-      "label": "Open Editor",
+      "label": "photo/ — Open Editor",
       "type": "shell",
       "command": "open http://localhost:8000/editor.html",
       "presentation": { "reveal": "never", "panel": "new", "close": true },
       "problemMatcher": []
     },
     {
-      "label": "Open Viewer",
+      "label": "photo/ — Open Viewer",
       "type": "shell",
-      "command": "open http://localhost:8000/viewer.html",
+      "command": "open http://localhost:8000/",
       "presentation": { "reveal": "never", "panel": "new", "close": true },
       "problemMatcher": []
     }
