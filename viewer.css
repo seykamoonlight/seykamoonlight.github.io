@@ -1,7 +1,7 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --panel-w: 220px;
+  --panel-w: 330px;
   --bg: #e8e4de;
 }
 
@@ -34,9 +34,15 @@ body {
   font-size: 13px;
   font-weight: normal;
   letter-spacing: 0.18em;
-  text-transform: lowercase;
   color: #2a2a2a;
-  margin-bottom: 10px;
+  margin-bottom: 20px;
+}
+
+#site-qr {
+  width: 100%;
+  height: auto;
+  display: block;
+  margin-bottom: 20px;
 }
 
 #site-intro {
@@ -45,6 +51,28 @@ body {
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
+
+#panel-footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#panel-footer p, #panel-footer a {
+  font-size: 9px;
+  color: #aaa;
+  letter-spacing: 0.08em;
+  line-height: 1.5;
+}
+
+#panel-footer a {
+  color: #888;
+  text-decoration: none;
+  word-break: break-all;
+}
+
+#panel-footer a:hover { color: #555; }
 
 /* ── menu button (mobile only) ── */
 #menu-btn {
@@ -89,6 +117,7 @@ body {
   flex-shrink: 0;
   position: relative;
   overflow: visible;
+  margin-top: 20vh;
   padding-bottom: 200px;
 }
 

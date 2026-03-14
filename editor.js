@@ -1,4 +1,5 @@
 const COLUMN_W = 420; // must match viewer.js
+const STD_BOX  = 210; // reference box for "100%" natural size (px)
 
 const canvas = document.getElementById('canvas');
 const wrapper = document.getElementById('canvas-wrapper');
@@ -22,8 +23,11 @@ let selected = null;
 let dragging = null;
 let dragOffX = 0, dragOffY = 0;
 
+const PANEL_W = 330;
+
 function getColLeft() {
-  return (canvas.offsetWidth - COLUMN_W) / 2;
+  const available = canvas.offsetWidth - PANEL_W;
+  return PANEL_W + Math.max(0, (available - COLUMN_W) / 2);
 }
 
 function updateGuide() {
@@ -46,7 +50,7 @@ async function handlePhotoFile(file) {
   if (photos.find(p => p.filename === file.name)) return;
 
   const blobUrl = URL.createObjectURL(file);
-  const photo = spawnPhoto(file.name, blobUrl, 0.5, nextY(), 0.65, 0);
+  const photo = spawnPhoto(file.name, blobUrl, 0.5, nextY(), null, 0);
   updateStatus();
   ensureCanvasHeight();
 
@@ -65,8 +69,16 @@ async function handlePhotoFile(file) {
 }
 
 function nextY() {
-  if (photos.length === 0) return 0.3;
-  return Math.max(...photos.map(p => p.y + p.size * 1.5)) + 0.1;
+  return 0.3;
+}
+
+function addSpaceTop() {
+  const SHIFT = 2.0; // column units to shift everything down
+  photos.forEach(p => {
+    p.y += SHIFT;
+    positionPhoto(p);
+  });
+  ensureCanvasHeight();
 }
 
 // ── file picker ──
@@ -94,7 +106,17 @@ function spawnPhoto(filename, url, x, y, size, rotation) {
   const img = document.createElement('img');
   img.src = url;
   img.draggable = false;
-  img.addEventListener('load', ensureCanvasHeight);
+  img.addEventListener('load', () => {
+    // compute natural size: scale actual dimensions to fit STD_BOX
+    const scale = Math.min(STD_BOX / img.naturalWidth, STD_BOX / img.naturalHeight, 1);
+    photo.naturalSize = (img.naturalWidth * scale) / COLUMN_W;
+    if (photo.size === null) {
+      photo.size = photo.naturalSize;
+      positionPhoto(photo);
+      if (selected === photo) updateSizeSlider(photo);
+    }
+    ensureCanvasHeight();
+  });
 
   frame.appendChild(img);
   el.appendChild(frame);
@@ -116,7 +138,7 @@ function spawnPhoto(filename, url, x, y, size, rotation) {
 }
 
 function positionPhoto(photo) {
-  const photoW = photo.size * COLUMN_W;
+  const photoW = (photo.size ?? 0.65) * COLUMN_W;
   const cx = getColLeft() + photo.x * COLUMN_W;
   photo.el.style.left = (cx - photoW / 2) + 'px';
   photo.el.style.top = (photo.y * COLUMN_W) + 'px';
@@ -161,6 +183,12 @@ function bindDrag(el, photo) {
   });
 }
 
+function updateSizeSlider(photo) {
+  const multiplier = photo.naturalSize ? photo.size / photo.naturalSize : 1;
+  sizeSlider.value = multiplier;
+  sizeValue.textContent = Math.round(multiplier * 100) + '%';
+}
+
 function selectPhoto(photo) {
   if (selected) {
     selected.el.classList.remove('selected');
@@ -174,8 +202,7 @@ function selectPhoto(photo) {
   rotationValue.textContent = photo.rotation + '°';
   rotationControl.classList.add('visible');
 
-  sizeSlider.value = photo.size;
-  sizeValue.textContent = Math.round(photo.size * 100) + '%';
+  updateSizeSlider(photo);
   sizeControl.classList.add('visible');
 
   deleteBtn.classList.add('visible');
@@ -203,14 +230,16 @@ function onRotationChange() {
 
 function onSizeChange() {
   if (!selected) return;
-  selected.size = parseFloat(sizeSlider.value);
-  sizeValue.textContent = Math.round(selected.size * 100) + '%';
+  const multiplier = parseFloat(sizeSlider.value);
+  selected.size = (selected.naturalSize ?? 0.65) * multiplier;
+  sizeValue.textContent = Math.round(multiplier * 100) + '%';
   positionPhoto(selected);
   ensureCanvasHeight();
 }
 
 function deleteSelected() {
   if (!selected) return;
+  const filename = selected.filename;
   photos.splice(photos.indexOf(selected), 1);
   selected.el.remove();
   selected = null;
@@ -219,6 +248,7 @@ function deleteSelected() {
   deleteBtn.classList.remove('visible');
   updateStatus();
   if (photos.length === 0) hint.classList.remove('hidden');
+  fetch(`/delete-photo?name=${encodeURIComponent(filename)}`, { method: 'DELETE' });
 }
 
 let statusTimer = null;

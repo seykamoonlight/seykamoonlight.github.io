@@ -92,31 +92,37 @@ body {
   overflow-y: scroll;
   overflow-x: hidden;
   scrollbar-width: thin;
-  scrollbar-color: #333 #1a1a1a;
-  display: flex;
-  justify-content: center;
-  background: #141414;
+  scrollbar-color: rgba(0,0,0,0.15) transparent;
 }
 
 /* ── canvas ── */
 #canvas {
-  width: 660px; /* COLUMN_W (420) + bleed (120) × 2 */
-  flex-shrink: 0;
+  width: 100%;
   min-height: 100%;
   position: relative;
-  background: #ccc8c2; /* outside column: slightly darker */
+  background: #e8e4de;
+  background-image:
+    radial-gradient(circle at 20% 40%, rgba(255,255,255,0.22) 0%, transparent 55%),
+    radial-gradient(circle at 80% 70%, rgba(0,0,0,0.04) 0%, transparent 50%);
 }
 
-/* ── column guide — the actual paper area ── */
+/* ── left panel placeholder ── */
+#panel-placeholder {
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  width: 330px;
+  border-right: 1px dashed rgba(0,0,0,0.15);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── column guide: dotted mobile outline only ── */
 #column-guide {
   position: absolute;
   top: 0;
   bottom: 0;
-  background: #e8e4de;
-  background-image:
-    radial-gradient(circle at 40% 30%, rgba(255,255,255,0.18) 0%, transparent 60%);
-  border-left: 1px solid rgba(0,0,0,0.10);
-  border-right: 1px solid rgba(0,0,0,0.10);
+  border-left: 1px dashed rgba(0,0,0,0.18);
+  border-right: 1px dashed rgba(0,0,0,0.18);
   pointer-events: none;
   z-index: 0;
 }
