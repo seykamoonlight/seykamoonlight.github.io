@@ -1,0 +1,243 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --panel-w: 330px;
+  --bg: #e8e4de;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  font-family: 'Courier New', monospace;
+}
+
+body {
+  background-image:
+    radial-gradient(circle at 20% 60%, rgba(255,255,255,0.22) 0%, transparent 55%),
+    radial-gradient(circle at 80% 20%, rgba(0,0,0,0.04) 0%, transparent 50%);
+}
+
+/* ── left panel ── */
+#panel {
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  width: var(--panel-w);
+  background: var(--bg);
+  border-right: 1px solid rgba(0,0,0,0.08);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  padding: 48px 28px;
+}
+
+#site-title {
+  font-size: 13px;
+  font-weight: normal;
+  letter-spacing: 0.18em;
+  color: #2a2a2a;
+  margin-bottom: 20px;
+}
+
+#site-qr {
+  width: 100%;
+  height: auto;
+  display: block;
+  margin-bottom: 20px;
+}
+
+#site-intro {
+  font-size: 10px;
+  color: #999;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+#panel-footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#panel-footer p, #panel-footer a {
+  font-size: 9px;
+  color: #aaa;
+  letter-spacing: 0.08em;
+  line-height: 1.5;
+}
+
+#panel-footer a {
+  color: #888;
+  text-decoration: none;
+  word-break: break-all;
+}
+
+#panel-footer a:hover { color: #555; }
+
+/* ── menu button (mobile only) ── */
+#menu-btn {
+  display: none;
+  position: fixed;
+  top: 18px; left: 18px;
+  z-index: 200;
+  background: none;
+  border: none;
+  cursor: pointer;
+  flex-direction: column;
+  gap: 5px;
+  padding: 6px;
+}
+
+#menu-btn span {
+  display: block;
+  width: 20px;
+  height: 1.5px;
+  background: #555;
+  transition: background 0.2s;
+}
+
+#menu-btn:hover span { background: #222; }
+
+/* ── scroll area ── */
+#scroll-area {
+  margin-left: var(--panel-w);
+  height: 100vh;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  display: flex;
+  justify-content: center;
+}
+
+#scroll-area::-webkit-scrollbar { display: none; }
+
+/* ── column ── */
+#column {
+  width: 420px;
+  flex-shrink: 0;
+  position: relative;
+  overflow: visible;
+  margin-top: 10vh;
+  padding-bottom: 200px;
+}
+
+/* ── photos ── */
+.photo {
+  position: absolute;
+  cursor: pointer;
+}
+
+.photo:hover { z-index: 50 !important; }
+
+.frame {
+  background: white;
+  padding: 8px;
+  box-shadow: 3px 3px 14px rgba(0,0,0,0.20);
+  transition: box-shadow 0.2s ease;
+}
+
+.photo:hover .frame {
+  box-shadow: 6px 8px 28px rgba(0,0,0,0.28);
+}
+
+.frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* ── lightbox ── */
+#lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0);
+  z-index: 1000;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  visibility: hidden;
+  pointer-events: none;
+  transition: background 0.35s ease;
+}
+
+#lightbox.active {
+  visibility: visible;
+  pointer-events: all;
+  background: rgba(0,0,0,0.88);
+}
+
+#lightbox .frame {
+  padding: 12px;
+  cursor: default;
+  opacity: 0;
+  transform: scale(0.94);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: inline-flex;
+}
+
+#lightbox.active .frame {
+  opacity: 1;
+  transform: scale(1);
+}
+
+#lightbox-img {
+  transition: filter 0.4s ease;
+}
+
+#lightbox-img.loading {
+  filter: blur(8px);
+}
+
+#lightbox .frame img {
+  max-width: calc(90vw - 24px);
+  max-height: calc(90vh - 24px);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
+/* ── error ── */
+#error {
+  display: none;
+  position: fixed;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 12px;
+  color: #999;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+#error.visible { display: flex; }
+#error span { color: #777; font-size: 11px; }
+
+/* ── mobile ── */
+@media (max-width: 700px) {
+  #panel {
+    transform: translateX(-100%);
+    transition: transform 0.28s ease;
+    box-shadow: none;
+  }
+
+  #panel.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(0,0,0,0.12);
+  }
+
+  #menu-btn { display: flex; }
+
+  #scroll-area {
+    margin-left: 0;
+  }
+
+  #column {
+    width: 100%;
+    max-width: 420px;
+  }
+}

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gallery</title>
+  <link rel="stylesheet" href="viewer.css">
+</head>
+<body>
+
+<aside id="panel">
+  <div id="panel-inner">
+    <h1 id="site-title">Gabriel B.</h1>
+    <img id="site-qr" src="qr.svg" alt="seykamoonlight.github.io/photo">
+    <nav id="site-nav">
+      <!-- navigation will come later -->
+    </nav>
+  </div>
+  <footer id="panel-footer">
+    <p>© Gabriel Bauduin. Tous droits réservés.</p>
+    <p>Merci de me créditer en cas de partage.</p>
+    <p>Si vous apparaissez sur une photo et souhaitez qu'elle soit retirée, contactez-moi à <a href="mailto:gabriel.bauduin@gmail.com">gabriel.bauduin@gmail.com</a></p>
+  </footer>
+</aside>
+
+<button id="menu-btn" aria-label="Menu" onclick="togglePanel()">
+  <span></span><span></span><span></span>
+</button>
+
+<div id="scroll-area">
+  <div id="column"></div>
+</div>
+
+<div id="lightbox">
+  <div class="frame">
+    <img id="lightbox-img" src="" alt="">
+  </div>
+</div>
+
+<div id="error">
+  No layout found
+  <span>serve this folder with: python3 server.py</span>
+</div>
+
+<script src="viewer.js"></script>
+</body>
+</html>
