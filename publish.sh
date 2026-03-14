@@ -1,28 +1,50 @@
 #!/bin/bash
-# Déploie le viewer sur la branche gh-pages
+# Déploie le viewer sur la branche gh-pages (delta push — rapide)
 set -e
 
 REPO=$(git -C "$(dirname "$0")" rev-parse --show-toplevel)
-REMOTE=$(git -C "$REPO" remote get-url origin)
-TEMP=$(mktemp -d)
+WORKTREE="$REPO/.gh-pages"
 
-echo "→ Copie des fichiers..."
-cp "$REPO/index.html"        "$TEMP/"
-cp "$REPO/LICENSE"           "$TEMP/" 2>/dev/null || true
-mkdir -p "$TEMP/photo"
-cp "$REPO/photo/index.html"  "$TEMP/photo/"
-cp "$REPO/photo/viewer.css"  "$TEMP/photo/"
-cp "$REPO/photo/viewer.js"   "$TEMP/photo/"
-cp "$REPO/photo/qr.svg"      "$TEMP/photo/"
-cp "$REPO/photo/layout.json" "$TEMP/photo/"
-cp -r "$REPO/photo/photos"   "$TEMP/photo/"
+# Créer la branche gh-pages si elle n'existe pas encore
+if ! git -C "$REPO" show-ref --quiet refs/heads/gh-pages; then
+  echo "→ Création de la branche gh-pages..."
+  git -C "$REPO" checkout --orphan gh-pages
+  git -C "$REPO" rm -rf . --quiet
+  git -C "$REPO" commit --allow-empty -q -m "init gh-pages"
+  git -C "$REPO" checkout -
+fi
 
-echo "→ Publication sur gh-pages..."
-cd "$TEMP"
-git init -b gh-pages
+# Créer le worktree si absent
+if [ ! -d "$WORKTREE" ]; then
+  echo "→ Initialisation du worktree..."
+  git -C "$REPO" worktree add "$WORKTREE" gh-pages
+fi
+
+echo "→ Synchronisation des fichiers..."
+rsync -a "$REPO/index.html" "$WORKTREE/"
+cp "$REPO/LICENSE" "$WORKTREE/" 2>/dev/null || true
+
+mkdir -p "$WORKTREE/photo"
+rsync -a \
+  "$REPO/photo/index.html" \
+  "$REPO/photo/viewer.css" \
+  "$REPO/photo/viewer.js" \
+  "$REPO/photo/qr.svg" \
+  "$REPO/photo/layout.json" \
+  "$WORKTREE/photo/"
+
+rsync -a --delete "$REPO/photo/photos/" "$WORKTREE/photo/photos/"
+
+echo "→ Commit..."
+cd "$WORKTREE"
 git add -A
+if git diff --cached --quiet; then
+  echo "✓ Rien à publier (aucun changement détecté)"
+  exit 0
+fi
 git commit -q -m "deploy $(date '+%Y-%m-%d %H:%M')"
-git push --force "$REMOTE" gh-pages
 
-rm -rf "$TEMP"
+echo "→ Push..."
+git push origin gh-pages
+
 echo "✓ Déployé sur gh-pages"
