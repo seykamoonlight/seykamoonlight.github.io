@@ -73,11 +73,14 @@ function nextY() {
 }
 
 function addSpaceTop() {
-  const SHIFT = 2.0; // column units to shift everything down
-  photos.forEach(p => {
-    p.y += SHIFT;
-    positionPhoto(p);
-  });
+  const SHIFT = 0.5;
+  photos.forEach(p => { p.y += SHIFT; positionPhoto(p); });
+  ensureCanvasHeight();
+}
+
+function removeSpaceTop() {
+  const SHIFT = 0.5;
+  photos.forEach(p => { p.y = Math.max(0, p.y - SHIFT); positionPhoto(p); });
   ensureCanvasHeight();
 }
 

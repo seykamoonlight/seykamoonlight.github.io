@@ -57,8 +57,14 @@ function updateColumnHeight() {
 
 // ── lightbox ──
 function openLightbox(src) {
+  lightbox.classList.remove('active');
+  lightboxImg.src = '';
+  lightboxImg.onload = () => {
+    lightbox.offsetHeight; // force reflow
+    lightbox.classList.add('active');
+    lightboxImg.onload = null;
+  };
   lightboxImg.src = src;
-  lightbox.classList.add('active');
 }
 
 lightbox.addEventListener('click', e => {
