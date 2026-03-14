@@ -42,7 +42,8 @@ fetch('layout.json')
       el.appendChild(frame);
       column.appendChild(el);
 
-      el.addEventListener('click', () => openLightbox(item.file));
+      const thumbSrc = item.file.replace(/^photos\//, 'photos/thumbs/');
+      el.addEventListener('click', () => openLightbox(item.file, thumbSrc));
     });
   })
   .catch(() => errorEl.classList.add('visible'));
@@ -56,23 +57,39 @@ function updateColumnHeight() {
 }
 
 // ── lightbox ──
-function openLightbox(src) {
+let _pendingFull = null;
+
+function openLightbox(fullSrc, thumbSrc) {
+  if (_pendingFull) { _pendingFull.onload = null; _pendingFull = null; }
+
   lightbox.classList.remove('active');
-  lightboxImg.src = '';
-  lightboxImg.onload = () => {
-    lightbox.offsetHeight; // force reflow
-    lightbox.classList.add('active');
-    lightboxImg.onload = null;
+  lightboxImg.src = thumbSrc;
+  lightboxImg.classList.add('loading');
+  lightbox.offsetHeight; // force reflow
+  lightbox.classList.add('active');
+
+  const full = new Image();
+  full.onload = () => {
+    lightboxImg.src = full.src;
+    lightboxImg.classList.remove('loading');
+    _pendingFull = null;
   };
-  lightboxImg.src = src;
+  full.src = fullSrc;
+  _pendingFull = full;
+}
+
+function closeLightbox() {
+  lightbox.classList.remove('active');
+  lightboxImg.classList.remove('loading');
+  if (_pendingFull) { _pendingFull.onload = null; _pendingFull = null; }
 }
 
 lightbox.addEventListener('click', e => {
-  if (e.target === lightbox) lightbox.classList.remove('active');
+  if (e.target === lightbox) closeLightbox();
 });
 
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') lightbox.classList.remove('active');
+  if (e.key === 'Escape') closeLightbox();
 });
 
 // ── panel toggle (mobile) ──

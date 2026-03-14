@@ -183,6 +183,14 @@ body {
   transform: scale(1);
 }
 
+#lightbox-img {
+  transition: filter 0.4s ease;
+}
+
+#lightbox-img.loading {
+  filter: blur(8px);
+}
+
 #lightbox .frame img {
   max-width: calc(90vw - 24px);
   max-height: calc(90vh - 24px);
