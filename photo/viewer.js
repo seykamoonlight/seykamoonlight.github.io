@@ -31,11 +31,11 @@ fetch('layout.json')
       frame.className = 'frame';
 
       const img = document.createElement('img');
-      img.src = item.file.replace(/^photos\//, 'photos/thumbs/');
       img.alt = '';
-      img.addEventListener('error', () => { img.src = item.file; }, { once: true });
       img.draggable = false;
       img.loading = 'lazy';
+      img.addEventListener('error', () => { img.src = item.file; }, { once: true });
+      img.src = item.file.replace(/^photos\//, 'photos/thumbs/');
       img.addEventListener('load', updateColumnHeight);
 
       frame.appendChild(img);
