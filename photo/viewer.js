@@ -1,4 +1,5 @@
 const COLUMN_W = 420; // must match editor.js
+let _galleryData = [];
 
 const column = document.getElementById('column');
 const lightbox = document.getElementById('lightbox');
@@ -13,6 +14,8 @@ fetch('layout.json')
 
     const colW = column.offsetWidth || COLUMN_W;
 
+    _galleryData = data;
+
     data.forEach(item => {
       const size = item.size ?? 0.65;
       const photoW = size * colW;
@@ -21,6 +24,7 @@ fetch('layout.json')
 
       const el = document.createElement('div');
       el.className = 'photo';
+      el.dataset.file = item.file;
       el.style.width = photoW + 'px';
       el.style.left = left + 'px';
       el.style.top = top + 'px';
@@ -45,6 +49,8 @@ fetch('layout.json')
       const thumbSrc = item.file.replace(/^photos\//, 'photos/thumbs/');
       el.addEventListener('click', () => openLightbox(item.file, thumbSrc));
     });
+
+    checkDeepLink();
   })
   .catch(() => errorEl.classList.add('visible'));
 
@@ -56,11 +62,26 @@ function updateColumnHeight() {
   column.style.minHeight = (max + 200) + 'px';
 }
 
+// ── deep link ──
+function checkDeepLink() {
+  const filename = decodeURIComponent(window.location.hash.slice(1));
+  if (!filename) return;
+  const item = _galleryData.find(i => i.file === 'photos/' + filename || i.file === filename);
+  if (!item) return;
+  const el = column.querySelector(`[data-file="${item.file}"]`);
+  if (!el) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setTimeout(() => openLightbox(item.file, item.file.replace(/^photos\//, 'photos/thumbs/')), 500);
+}
+
 // ── lightbox ──
 let _pendingFull = null;
 
 function openLightbox(fullSrc, thumbSrc) {
   if (_pendingFull) { _pendingFull.onload = null; _pendingFull = null; }
+
+  const filename = fullSrc.split('/').pop();
+  history.replaceState(null, '', '#' + encodeURIComponent(filename));
 
   lightbox.classList.remove('active');
   lightboxImg.src = thumbSrc;
@@ -79,9 +100,17 @@ function openLightbox(fullSrc, thumbSrc) {
 }
 
 function closeLightbox() {
+  history.replaceState(null, '', window.location.pathname);
   lightbox.classList.remove('active');
   lightboxImg.classList.remove('loading');
   if (_pendingFull) { _pendingFull.onload = null; _pendingFull = null; }
+}
+
+function sharePhoto() {
+  navigator.clipboard.writeText(window.location.href);
+  const toast = document.getElementById('share-toast');
+  toast.classList.add('visible');
+  setTimeout(() => toast.classList.remove('visible'), 2000);
 }
 
 lightbox.addEventListener('click', e => {
