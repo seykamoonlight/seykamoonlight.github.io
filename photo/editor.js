@@ -110,6 +110,8 @@ function spawnPhoto(filename, url, x, y, size, rotation) {
   img.src = url;
   img.draggable = false;
   img.addEventListener('load', () => {
+    photo.naturalW = img.naturalWidth;
+    photo.naturalH = img.naturalHeight;
     // compute natural size: scale actual dimensions to fit STD_BOX
     const scale = Math.min(STD_BOX / img.naturalWidth, STD_BOX / img.naturalHeight, 1);
     photo.naturalSize = (img.naturalWidth * scale) / COLUMN_W;
@@ -286,7 +288,8 @@ function buildLayoutJson() {
     x: Math.round(p.x * 10000) / 10000,
     y: Math.round(p.y * 10000) / 10000,
     size: Math.round(p.size * 1000) / 1000,
-    rotation: p.rotation
+    rotation: p.rotation,
+    ...(p.naturalW && p.naturalH ? { w: p.naturalW, h: p.naturalH } : {})
   })), null, 2);
 }
 

@@ -38,6 +38,7 @@ fetch('layout.json')
       img.alt = '';
       img.draggable = false;
       img.loading = 'lazy';
+      if (item.w && item.h) img.style.aspectRatio = `${item.w} / ${item.h}`;
       img.addEventListener('error', () => { img.src = item.file; }, { once: true });
       img.src = item.file.replace(/^photos\//, 'photos/thumbs/');
       img.addEventListener('load', updateColumnHeight);

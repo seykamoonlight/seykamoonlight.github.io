@@ -44,6 +44,36 @@ def generate_all_thumbs():
             make_thumb(f, thumbs_dir)
 
 
+def patch_layout_dimensions():
+    """Add w/h to layout.json entries that are missing them."""
+    if not HAS_PIL:
+        return
+    import json
+    layout_path = ROOT / 'layout.json'
+    if not layout_path.exists():
+        return
+    try:
+        data = json.loads(layout_path.read_text())
+    except Exception:
+        return
+    changed = False
+    for item in data:
+        if 'w' not in item or 'h' not in item:
+            src = ROOT / item['file']
+            if not src.exists():
+                continue
+            try:
+                with Image.open(src) as img:
+                    img = ImageOps.exif_transpose(img)
+                    item['w'], item['h'] = img.size
+                    changed = True
+            except Exception:
+                pass
+    if changed:
+        layout_path.write_text(json.dumps(data, indent=2))
+        print('layout.json patched with image dimensions')
+
+
 class Handler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(ROOT), **kwargs)
@@ -93,6 +123,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
 
 generate_all_thumbs()
+patch_layout_dimensions()
 
 with socketserver.TCPServer(('', PORT), Handler) as httpd:
     print(f'Serving at http://localhost:{PORT}')
