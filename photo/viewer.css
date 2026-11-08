@@ -5,16 +5,30 @@
   --bg: #e8e4de;
 }
 
-html, body {
-  height: 100%;
+/* C'est la PAGE elle-même qui défile, pas une boîte intérieure : c'est la
+   condition pour que, sur iPhone, les photos passent sous la barre d'état et
+   sous la barre d'adresse de Safari au lieu d'y laisser une bande unie. */
+html {
   background: var(--bg);
   font-family: 'Courier New', monospace;
+  scrollbar-width: none;
 }
 
+html::-webkit-scrollbar { display: none; }
+
+/* pas de défilement de la page derrière une photo ouverte en grand */
+html:has(#lightbox.active) { overflow: hidden; }
+
 body {
+  min-height: 100%;
+  /* sur iPhone, Safari teinte ses barres avec cette couleur */
+  background-color: var(--bg);
+  /* fixed : le léger dégradé reste attaché à l'écran pendant le défilement
+     (iOS l'ignore et l'étale sur toute la page, ce qui revient au même) */
   background-image:
     radial-gradient(circle at 20% 60%, rgba(255,255,255,0.22) 0%, transparent 55%),
     radial-gradient(circle at 80% 20%, rgba(0,0,0,0.04) 0%, transparent 50%);
+  background-attachment: fixed;
 }
 
 /* ── panneau de gauche ── */
@@ -22,12 +36,18 @@ body {
   position: fixed;
   top: 0; left: 0; bottom: 0;
   width: var(--panel-w);
-  background: var(--bg);
+  /* Couleur posée en image et non en background-color : sinon, sur iPhone,
+     Safari prend ce panneau (fixe, collé en haut et en bas de l'écran) pour
+     une barre de la page, et rend ses propres barres opaques dès qu'il est
+     ouvert. Le rendu est identique. */
+  background: linear-gradient(var(--bg), var(--bg));
   border-right: 1px solid rgba(0,0,0,0.08);
   z-index: 100;
   display: flex;
   flex-direction: column;
   padding: 48px 28px;
+  padding-top: calc(48px + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(48px + env(safe-area-inset-bottom, 0px));
 }
 
 #site-title {
@@ -71,7 +91,8 @@ body {
 #menu-btn {
   display: none;
   position: fixed;
-  top: 18px; left: 18px;
+  top: calc(18px + env(safe-area-inset-top, 0px));
+  left: calc(18px + env(safe-area-inset-left, 0px));
   z-index: 200;
   background: none;
   border: none;
@@ -91,18 +112,15 @@ body {
 
 #menu-btn:hover span { background: #222; }
 
-/* ── zone de défilement ── */
+/* ── zone des photos ── */
 #scroll-area {
   margin-left: var(--panel-w);
-  height: 100vh;
-  overflow-y: scroll;
-  overflow-x: hidden;
-  scrollbar-width: none;
+  /* clip et non hidden : coupe ce qui déborde sur les côtés (photos tournées)
+     sans faire de cette zone une boîte qui défile à part */
+  overflow-x: clip;
   display: flex;
   justify-content: center;
 }
-
-#scroll-area::-webkit-scrollbar { display: none; }
 
 /* ── colonne ──
    --col est LA largeur de référence : toutes les positions du layout en
@@ -152,7 +170,11 @@ body {
 #lightbox {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0);
+  /* Voile sombre posé en image, et fondu par l'opacité : avec un
+     background-color, Safari sur iPhone recopierait ce noir dans ses barres
+     au lieu de laisser voir le voile à travers (voir #panel). */
+  background: linear-gradient(rgba(0,0,0,0.88), rgba(0,0,0,0.88));
+  opacity: 0;
   z-index: 1000;
   cursor: pointer;
   display: flex;
@@ -160,13 +182,13 @@ body {
   justify-content: center;
   visibility: hidden;
   pointer-events: none;
-  transition: background 0.35s ease;
+  transition: opacity 0.35s ease;
 }
 
 #lightbox.active {
   visibility: visible;
   pointer-events: all;
-  background: rgba(0,0,0,0.88);
+  opacity: 1;
 }
 
 #lightbox .frame {
@@ -257,6 +279,10 @@ body {
 
 /* ── mobile ── */
 @media (max-width: 700px) {
+  /* Sur téléphone, fond uni : la barre de Safari en haut de page, teintée
+     de cette couleur, se fond alors exactement dans le fond. */
+  body { background-image: none; }
+
   #panel {
     transform: translateX(-100%);
     transition: transform 0.28s ease;
