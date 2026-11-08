@@ -14,8 +14,13 @@ L'édition se fait en local, dans un petit éditeur ouvert dans le navigateur.
 2. **Glisse des photos** dans l'éditeur, place-les, règle leur taille, leur
    angle et leur ordre d'empilement (↑ Avant / ↓ Arrière).
 3. **Enregistrer** (ou Cmd + S) écrit `photo/layout.json`.
-4. **↗ Publier** enregistre puis met le site en ligne. GitHub met environ
-   une minute à afficher la nouvelle version.
+4. **Aperçu** construit le site exactement comme pour la publication et
+   l'ouvre dans un nouvel onglet, sans rien envoyer. C'est le site au
+   fichier près : seules les photos du layout y sont, et comme sur GitHub,
+   un nom de fichier dont la casse ne correspond pas y est introuvable.
+5. **↗ Publier** enregistre, met le site en ligne, puis **vérifie** que
+   GitHub sert bien la nouvelle version (cela peut prendre jusqu'à deux
+   minutes). Le journal dit clairement si quelque chose ne va pas.
 
 Quelques comportements à connaître :
 
@@ -53,7 +58,7 @@ déposée dans `photo/photos/` sans être placée ne part pas en ligne.
 ## Organisation du code
 
 ```
-Galerie.command        lance le serveur local et ouvre l'éditeur
+Galerie.command        lance le serveur local (éditeur :8000, aperçu :8001)
 publish.sh             met le site en ligne (voir plus bas)
 index.html             page d'accueil du site
 photo/
@@ -83,17 +88,33 @@ largeur du panneau de gauche (330 px) et la taille par défaut (0,65).
    layout** a bien ses deux tailles — sinon il s'arrête sans rien envoyer ;
 2. reconstruit de zéro le contenu de la branche `gh-pages`, dans le
    dossier `.gh-pages/` ;
-3. l'envoie sur GitHub.
+3. l'envoie sur GitHub ;
+4. compare, octet pour octet, ce que GitHub sert avec ce qui vient d'être
+   envoyé, jusqu'à ce que le site soit à jour.
 
 La branche `gh-pages` ne contient **qu'un seul commit**, la version
 actuelle du site : chaque publication remplace la précédente au lieu de
 s'empiler. Le dépôt ne grossit donc pas au fil des mises à jour.
 
-Pour voir ce qui changerait sans rien envoyer :
+Pour construire le site et voir ce qui changerait, sans rien envoyer (c'est
+ce que fait le bouton Aperçu ; le résultat est servi sur
+http://localhost:8001/photo/ tant que l'éditeur est ouvert) :
 
 ```bash
 ./publish.sh --dry-run
 ```
+
+Pour vérifier à tout moment que le site en ligne est à jour :
+
+```bash
+./publish.sh --check
+```
+
+**GitHub doit servir la branche `gh-pages`**, pas `main` (qui ne contient
+aucune photo : la galerie s'afficherait avec des images cassées). Le
+réglage se trouve dans le dépôt, *Settings → Pages* : « Deploy from a
+branch », branche `gh-pages`, dossier `/ (root)`. Si ce n'est pas le cas,
+la vérification de `publish.sh` le signale avec le lien direct.
 
 Le code source vit sur la branche `main`. La publication ne la touche pas :
 pense à commiter de temps en temps, en particulier `photo/layout.json`, qui

@@ -32,6 +32,7 @@ const columnGuide = $('column-guide');
 const hint = $('hint');
 const statusEl = $('status');
 const publishBtn = $('publish-btn');
+const previewBtn = $('preview-btn');
 const publishLog = $('publish-log');
 
 const controls = {
@@ -469,47 +470,88 @@ window.addEventListener('beforeunload', e => {
   if (dirty) e.preventDefault();
 });
 
-// ── Publication ─────────────────────────────────────────────────────────────
+// ── Aperçu et publication ───────────────────────────────────────────────────
+//
+// Les deux passent par publish.sh. L'aperçu le lance en essai à blanc : le
+// site est construit exactement comme pour la publication, puis servi en
+// local au lieu d'être envoyé. Ce qu'on voit dans l'aperçu est donc ce qui
+// partira en ligne, au fichier près.
+
+const PREVIEW_URL = 'http://localhost:8001/photo/';
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 async function publish() {
-  publishLog.classList.add('visible');
-  publishLog.textContent = 'Enregistrement du layout...';
-  publishBtn.disabled = true;
-
-  if (!(await saveLayout())) {
-    publishLog.textContent = '✗ enregistrement impossible, publication annulée';
-    publishBtn.disabled = false;
-    return;
-  }
-
-  const res = await fetch('/publish', { method: 'POST' }).catch(() => null);
-  if (!res?.ok) {
-    publishLog.textContent = res?.status === 409
-      ? '✗ une publication est déjà en cours'
-      : '✗ le serveur a refusé la publication';
-    publishBtn.disabled = false;
-    return;
-  }
-  pollPublish();
+  if (await runPublishScript({ dry: false })) hideLogSoon();
 }
 
-// Interroge le serveur jusqu'à la fin de la publication. setTimeout plutôt
-// que setInterval : une réponse lente ne provoque pas de requêtes en rafale.
-async function pollPublish() {
+async function preview() {
+  // L'onglet est ouvert tout de suite, pendant le clic : ouvert après
+  // l'attente, le navigateur le bloquerait comme une fenêtre surgissante.
+  const tab = window.open('', 'apercu');
   try {
-    const state = await (await fetch('/publish-log')).json();
-    publishLog.textContent = state.log.join('\n') || 'Démarrage...';
-    publishLog.scrollTop = publishLog.scrollHeight;
-    if (state.running) {
-      setTimeout(pollPublish, 700);
-      return;
+    tab.document.body.textContent = 'Préparation de l’aperçu…';
+  } catch (_) {
+    // l'onglet affiche déjà un aperçu précédent : on le remplacera
+  }
+
+  if (!(await runPublishScript({ dry: true }))) {
+    tab?.close();
+    return;
+  }
+  if (tab) {
+    tab.location = PREVIEW_URL;
+    hideLogSoon();
+  } else {
+    // le navigateur a bloqué l'ouverture de l'onglet : on propose un lien
+    const link = Object.assign(document.createElement('a'), {
+      href: PREVIEW_URL,
+      target: 'apercu',
+      textContent: '→ Ouvrir l’aperçu',
+    });
+    publishLog.append('\n', link);
+  }
+}
+
+// Enregistre le layout, lance publish.sh et affiche sa sortie au fur et à
+// mesure. Renvoie true si tout s'est bien passé.
+async function runPublishScript({ dry }) {
+  publishLog.classList.add('visible');
+  publishLog.textContent = 'Enregistrement du layout...';
+  setPublishing(true);
+  try {
+    if (!(await saveLayout())) {
+      publishLog.textContent = '✗ enregistrement impossible, opération annulée';
+      return false;
     }
-    publishBtn.disabled = false;
-    if (state.ok) setTimeout(() => publishLog.classList.remove('visible'), 5000);
+    const res = await fetch('/publish' + (dry ? '?dry=1' : ''), { method: 'POST' });
+    if (!res.ok) {
+      publishLog.textContent = res.status === 409
+        ? '✗ une publication est déjà en cours'
+        : '✗ le serveur a refusé';
+      return false;
+    }
+    while (true) {
+      await sleep(700);
+      const state = await (await fetch('/publish-log')).json();
+      publishLog.textContent = state.log.join('\n') || 'Démarrage...';
+      publishLog.scrollTop = publishLog.scrollHeight;
+      if (!state.running) return state.ok;
+    }
   } catch (_) {
     publishLog.textContent = '✗ serveur injoignable';
-    publishBtn.disabled = false;
+    return false;
+  } finally {
+    setPublishing(false);
   }
+}
+
+function setPublishing(busy) {
+  publishBtn.disabled = busy;
+  previewBtn.disabled = busy;
+}
+
+function hideLogSoon() {
+  setTimeout(() => publishLog.classList.remove('visible'), 8000);
 }
 
 // ── Barre d'état ────────────────────────────────────────────────────────────

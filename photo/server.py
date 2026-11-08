@@ -4,12 +4,15 @@
 Lancé par Galerie.command (double-clic), ou à la main : python3 server.py
 Il ne sert qu'à l'édition : le site en ligne est entièrement statique.
 
-En plus des fichiers du dossier, il expose :
+Port 8000 — l'éditeur. En plus des fichiers du dossier, il expose :
     POST   /upload-photo?name=…   enregistre une photo et fabrique ses dérivées
     DELETE /delete-photo?name=…   range l'original dans corbeille/, efface ses dérivées
     POST   /save-layout           remplace layout.json (écriture atomique)
-    POST   /publish[?dry=1]       lance publish.sh en tâche de fond
+    POST   /publish[?dry=1]       lance publish.sh en tâche de fond ;
+                                  dry=1 construit le site sans l'envoyer
     GET    /publish-log           avancement de la publication en cours
+
+Port 8001 — l'aperçu : le site exactement tel qu'il sera publié.
 """
 
 import http.server
@@ -30,7 +33,9 @@ REPO = ROOT.parent
 PHOTOS = ROOT / "photos"
 TRASH = ROOT / "corbeille"
 LAYOUT = ROOT / "layout.json"
+SITE = REPO / ".gh-pages"  # le site tel que publish.sh le construit
 PORT = 8000
+PREVIEW_PORT = 8001
 
 # État de la publication, partagé entre le thread qui exécute publish.sh et
 # les requêtes /publish-log de l'éditeur.
@@ -135,9 +140,8 @@ def run_publish(dry: bool):
 
 # ── Serveur HTTP ────────────────────────────────────────────────────────────
 
-class Handler(http.server.SimpleHTTPRequestHandler):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, directory=str(ROOT), **kwargs)
+class LocalHandler(http.server.SimpleHTTPRequestHandler):
+    """Base commune à l'éditeur et à l'aperçu."""
 
     def end_headers(self):
         # Jamais de cache en local : sinon on modifie un fichier et le
@@ -147,6 +151,45 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def log_message(self, *args):
         pass  # pas de journal de chaque requête dans le terminal
+
+
+class PreviewHandler(LocalHandler):
+    """Sert le site tel que publish.sh l'a construit, sans rien y ajouter.
+
+    Il imite GitHub Pages sur un point qui compte : la casse des noms de
+    fichiers. macOS confond photo.JPG et photo.jpg, GitHub non. Sans cette
+    vérification, l'aperçu afficherait des photos qui seraient cassées en
+    ligne.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, directory=str(SITE), **kwargs)
+
+    def send_head(self):
+        if not self._exists_with_exact_case(Path(self.translate_path(self.path))):
+            self.send_error(404, "Introuvable (la casse du nom compte, comme sur GitHub)")
+            return None
+        return super().send_head()
+
+    @staticmethod
+    def _exists_with_exact_case(path: Path) -> bool:
+        try:
+            parts = path.relative_to(SITE).parts
+        except ValueError:
+            return False
+        current = SITE
+        for part in parts:
+            if not current.is_dir() or part not in os.listdir(current):
+                return False
+            current = current / part
+        return True
+
+
+class Handler(LocalHandler):
+    """L'éditeur : les fichiers du dossier photo/ et les routes ci-dessous."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, directory=str(ROOT), **kwargs)
 
     # ── routes ──
 
@@ -257,7 +300,13 @@ def main():
 
     with Server(("", PORT), Handler) as httpd:
         print(f"✓ Éditeur : http://localhost:{PORT}/editor.html")
-        print(f"  Galerie : http://localhost:{PORT}/")
+        # L'aperçu est un plus : s'il ne peut pas démarrer, on édite quand même.
+        try:
+            preview = Server(("", PREVIEW_PORT), PreviewHandler)
+            threading.Thread(target=preview.serve_forever, daemon=True).start()
+            print(f"  Aperçu  : http://localhost:{PREVIEW_PORT}/photo/  (bouton Aperçu de l'éditeur)")
+        except OSError as e:
+            print(f"  ✗ Aperçu indisponible, le port {PREVIEW_PORT} est occupé ({e.strerror})")
         httpd.serve_forever()
 
 

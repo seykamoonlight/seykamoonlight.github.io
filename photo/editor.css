@@ -116,6 +116,7 @@ body {
   box-shadow: 0 10px 34px rgba(0, 0, 0, 0.34);
 }
 #publish-log.visible { display: block; }
+#publish-log a { color: #8fd3b0; }
 
 /* ── zone de travail ────────────────────────────────────────────────────── */
 
@@ -130,6 +131,9 @@ body {
 /* même fond que le site, pour juger le rendu tel qu'il sera en ligne */
 #canvas {
   position: relative;
+  /* rangs des photos confinés au canevas : ils ne passent jamais devant le
+     journal de publication ou la barre d'outils, quel que soit leur nombre */
+  isolation: isolate;
   width: 100%;
   min-height: 100%;
   background: #e8e4de;

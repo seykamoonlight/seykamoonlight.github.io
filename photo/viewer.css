@@ -114,6 +114,11 @@ body {
   width: var(--col);
   margin-top: 10vh;
   overflow: visible;
+  /* Les rangs d'empilement des photos (1 à n, n = nombre de photos) ne
+     comptent qu'À L'INTÉRIEUR de la colonne. Sans cela, dès qu'il y a plus
+     de 100 photos, elles passent devant le panneau (100), le bouton menu
+     (200), voire le lightbox (1000). */
+  isolation: isolate;
 }
 
 /* ── photos ── */
@@ -122,9 +127,9 @@ body {
   cursor: pointer;
 }
 
-/* au survol, la photo passe devant ses voisines (rangs 1..n, bien en
-   dessous de 900) mais reste sous le lightbox (1000) */
-.photo:hover { z-index: 900 !important; }
+/* au survol, la photo passe devant toutes ses voisines (la colonne est
+   isolée : cette valeur ne joue qu'entre photos) */
+.photo:hover { z-index: 1000000 !important; }
 
 .frame {
   background: white;
