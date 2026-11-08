@@ -1,0 +1,62 @@
+#!/bin/bash
+# Galerie.app — ouvre l'éditeur de la galerie, sans fenêtre de Terminal.
+#
+# Démarre le serveur local en arrière-plan s'il ne tourne pas déjà, ouvre
+# l'éditeur dans le navigateur, puis se termine aussitôt. Le serveur
+# s'arrête ensuite tout seul, une minute environ après la fermeture du
+# dernier onglet de l'éditeur (voir photo/server.py).
+#
+# Le journal du serveur est dans ~/Library/Logs/Galerie.log (lisible avec
+# l'app Console).
+
+APP=$(cd "$(dirname "$0")/../.." && pwd)  # …/Galerie.app
+REPO=$(dirname "$APP")                    # le dossier du site
+PORT=8000
+URL="http://localhost:$PORT/editor.html"
+LOG="$HOME/Library/Logs/Galerie.log"
+
+# Une app lancée depuis le Dock n'hérite pas du PATH du Terminal : on reprend
+# celui du shell de connexion, pour utiliser le même Python (et son Pillow)
+# que d'habitude.
+export PATH="$(/bin/zsh -lc 'printf %s "$PATH"' 2>/dev/null):/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
+alert() {
+  osascript -e "display alert \"Galerie\" message \"$1\" as critical" >/dev/null 2>&1
+}
+
+server_up() {
+  lsof -nP -iTCP:$PORT -sTCP:LISTEN >/dev/null 2>&1
+}
+
+if [ ! -f "$REPO/photo/server.py" ]; then
+  alert "Galerie.app doit rester dans le dossier du site. Pour l'avoir dans le Dock, glisse-la dans le Dock sans la déplacer."
+  exit 1
+fi
+
+if ! server_up; then
+  if ! python3 -c 'import PIL' 2>/dev/null; then
+    alert "Il manque Pillow, qui fabrique les vignettes. Dans le Terminal : pip3 install Pillow"
+    exit 1
+  fi
+
+  cd "$REPO/photo" || exit 1
+  # nohup : le serveur survit à la fin de ce script
+  nohup python3 -u server.py >"$LOG" 2>&1 &
+
+  # Attendre qu'il réponde. Normalement c'est immédiat ; s'il y a beaucoup
+  # de nouvelles photos, il fabrique d'abord leurs vignettes.
+  for i in $(seq 1 240); do
+    server_up && break
+    if [ "$i" = 6 ]; then
+      osascript -e 'display notification "Préparation des vignettes…" with title "Galerie"' >/dev/null 2>&1
+    fi
+    sleep 0.5
+  done
+
+  if ! server_up; then
+    alert "Le serveur n'a pas démarré. Le détail est dans ~/Library/Logs/Galerie.log"
+    exit 1
+  fi
+fi
+
+open "$URL"

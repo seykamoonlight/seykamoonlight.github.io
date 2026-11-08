@@ -118,6 +118,25 @@ body {
 #publish-log.visible { display: block; }
 #publish-log a { color: #8fd3b0; }
 
+/* ── serveur injoignable ────────────────────────────────────────────────── */
+
+#server-lost {
+  display: none;
+  position: fixed;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 600;
+  max-width: 560px;
+  padding: 12px 18px;
+  background: #7a2020;
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.6;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.34);
+}
+#server-lost.visible { display: block; }
+
 /* ── zone de travail ────────────────────────────────────────────────────── */
 
 #canvas-wrapper {

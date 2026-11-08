@@ -4,25 +4,41 @@
     {
       "label": "Ouvrir l'éditeur",
       "type": "shell",
-      "command": "bash Galerie.command",
-      "options": { "cwd": "${workspaceFolder}" },
-      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "command": "open Galerie.app",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "never",
+        "panel": "shared",
+        "close": true
+      },
       "problemMatcher": []
     },
     {
       "label": "Publier",
       "type": "shell",
       "command": "bash publish.sh",
-      "options": { "cwd": "${workspaceFolder}" },
-      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
       "problemMatcher": []
     },
     {
       "label": "Publier — essai à blanc",
       "type": "shell",
       "command": "bash publish.sh --dry-run",
-      "options": { "cwd": "${workspaceFolder}" },
-      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
       "problemMatcher": []
     }
   ]

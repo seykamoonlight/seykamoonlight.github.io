@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Serveur local de l'éditeur de galerie.
 
-Lancé par Galerie.command (double-clic), ou à la main : python3 server.py
+Lancé par Galerie.app (Dock ou double-clic), ou à la main : python3 server.py
 Il ne sert qu'à l'édition : le site en ligne est entièrement statique.
 
 Port 8000 — l'éditeur. En plus des fichiers du dossier, il expose :
@@ -11,8 +11,14 @@ Port 8000 — l'éditeur. En plus des fichiers du dossier, il expose :
     POST   /publish[?dry=1]       lance publish.sh en tâche de fond ;
                                   dry=1 construit le site sans l'envoyer
     GET    /publish-log           avancement de la publication en cours
+    GET    /alive                 connexion gardée ouverte par chaque onglet
+                                  de l'éditeur (voir « Arrêt automatique »)
 
 Port 8001 — l'aperçu : le site exactement tel qu'il sera publié.
+
+Le serveur s'arrête tout seul une minute environ après la fermeture du
+dernier onglet de l'éditeur, jamais pendant une publication. L'aperçu
+s'arrête avec lui.
 """
 
 import http.server
@@ -138,6 +144,46 @@ def run_publish(dry: bool):
         _publish.update(running=False, ok=ok)
 
 
+# ── Arrêt automatique ───────────────────────────────────────────────────────
+#
+# Chaque onglet de l'éditeur garde une connexion /alive ouverte (EventSource).
+# Une connexion plutôt qu'un « ping » périodique : les navigateurs ralentissent
+# les minuteries des onglets en arrière-plan, pas leurs connexions — le serveur
+# ne s'arrête donc pas parce qu'on a simplement changé d'onglet.
+#
+# Quand plus aucun onglet n'est connecté, on attend IDLE_GRACE secondes
+# (le temps qu'un rechargement de page se reconnecte) avant de s'arrêter.
+
+IDLE_GRACE = 60   # s
+PING_EVERY = 15   # s ; un onglet fermé est détecté au ping suivant
+
+_editors = 0
+_last_editor_change = time.monotonic()
+_editors_lock = threading.Lock()
+
+
+def editors_changed(delta: int):
+    global _editors, _last_editor_change
+    with _editors_lock:
+        _editors += delta
+        _last_editor_change = time.monotonic()
+
+
+def stop_when_idle(servers):
+    """Tourne en tâche de fond et arrête les serveurs une fois l'éditeur fermé."""
+    while True:
+        time.sleep(5)
+        with _editors_lock:
+            idle = _editors == 0 and time.monotonic() - _last_editor_change > IDLE_GRACE
+        with _publish_lock:
+            publishing = _publish["running"]
+        if idle and not publishing:
+            print("→ Plus aucun éditeur ouvert : arrêt du serveur.")
+            for server in servers:
+                server.shutdown()
+            return
+
+
 # ── Serveur HTTP ────────────────────────────────────────────────────────────
 
 class LocalHandler(http.server.SimpleHTTPRequestHandler):
@@ -194,9 +240,12 @@ class Handler(LocalHandler):
     # ── routes ──
 
     def do_GET(self):
-        if urlparse(self.path).path == "/publish-log":
+        path = urlparse(self.path).path
+        if path == "/publish-log":
             with _publish_lock:
                 return self._send_json(dict(_publish))
+        if path == "/alive":
+            return self._keep_alive()
         super().do_GET()
 
     def do_POST(self):
@@ -238,6 +287,24 @@ class Handler(LocalHandler):
         self._send_text("ok")
 
     # ── détails ──
+
+    def _keep_alive(self):
+        """Garde la connexion d'un onglet de l'éditeur ouverte tant qu'il vit.
+        Écrire dans une connexion fermée lève une erreur : c'est ainsi
+        qu'on apprend que l'onglet a été fermé."""
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.end_headers()
+        editors_changed(+1)
+        try:
+            while True:
+                self.wfile.write(b": ping\n\n")  # commentaire SSE, ignoré par le navigateur
+                self.wfile.flush()
+                time.sleep(PING_EVERY)
+        except OSError:
+            pass  # onglet fermé
+        finally:
+            editors_changed(-1)
 
     def _upload(self, query, body: bytes):
         name = self._photo_name(query)
@@ -299,14 +366,21 @@ def main():
     fill_missing_dimensions()
 
     with Server(("", PORT), Handler) as httpd:
+        servers = [httpd]
         print(f"✓ Éditeur : http://localhost:{PORT}/editor.html")
         # L'aperçu est un plus : s'il ne peut pas démarrer, on édite quand même.
         try:
             preview = Server(("", PREVIEW_PORT), PreviewHandler)
             threading.Thread(target=preview.serve_forever, daemon=True).start()
+            servers.append(preview)
             print(f"  Aperçu  : http://localhost:{PREVIEW_PORT}/photo/  (bouton Aperçu de l'éditeur)")
         except OSError as e:
             print(f"  ✗ Aperçu indisponible, le port {PREVIEW_PORT} est occupé ({e.strerror})")
+
+        # Le délai de grâce part d'ici : si aucun éditeur ne se connecte (le
+        # navigateur ne s'est pas ouvert), le serveur ne reste pas orphelin.
+        editors_changed(0)
+        threading.Thread(target=stop_when_idle, args=(servers,), daemon=True).start()
         httpd.serve_forever()
 
 

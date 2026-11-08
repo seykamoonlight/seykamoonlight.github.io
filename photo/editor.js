@@ -571,6 +571,40 @@ function updateStatusCount() {
   statusEl.textContent = dirty ? `${count} · ● non enregistré` : count;
 }
 
+// ── Lien avec le serveur ────────────────────────────────────────────────────
+//
+// Tant que cet onglet est ouvert, il garde une connexion avec le serveur :
+// c'est ce qui le maintient en vie (il s'arrête tout seul une minute après
+// la fermeture du dernier onglet de l'éditeur). Si le serveur disparaît
+// quand même, on le dit au lieu de laisser échouer les enregistrements ;
+// EventSource retente la connexion tout seul, et le bandeau s'en va dès que
+// Galerie est relancée.
+
+const serverLost = $('server-lost');
+let serverLostTimer = null;
+
+function connectToServer() {
+  const alive = new EventSource('/alive');
+
+  alive.addEventListener('open', () => {
+    clearTimeout(serverLostTimer);
+    serverLostTimer = null;
+    serverLost.classList.remove('visible');
+  });
+
+  alive.addEventListener('error', () => {
+    // Quelques secondes de patience : une coupure brève n'a rien d'inquiétant.
+    // Le minuteur part à la PREMIÈRE erreur et n'est pas relancé ensuite :
+    // le navigateur retente toutes les 3 secondes environ, et chaque échec
+    // repousserait sinon l'alerte indéfiniment.
+    serverLostTimer ??= setTimeout(() => serverLost.classList.add('visible'), 4000);
+    // Si le navigateur abandonne de lui-même, on reprend la main.
+    if (alive.readyState === EventSource.CLOSED) setTimeout(connectToServer, 3000);
+  });
+}
+
+connectToServer();
+
 // ── Événements globaux et démarrage ─────────────────────────────────────────
 
 $('load-photos').addEventListener('change', e => {

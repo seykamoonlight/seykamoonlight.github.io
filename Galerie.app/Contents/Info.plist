@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleName</key>
+	<string>Galerie</string>
+	<key>CFBundleDisplayName</key>
+	<string>Galerie</string>
+	<key>CFBundleIdentifier</key>
+	<string>io.github.seykamoonlight.galerie</string>
+	<key>CFBundleExecutable</key>
+	<string>Galerie</string>
+	<key>CFBundleIconFile</key>
+	<string>Galerie</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<!-- L'app ne fait que lancer le serveur et ouvrir le navigateur, puis se
+	     termine : pas d'icône qui rebondit ni de point « en cours » dans le Dock. -->
+	<key>LSUIElement</key>
+	<true/>
+</dict>
+</plist>

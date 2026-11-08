@@ -9,8 +9,11 @@ L'édition se fait en local, dans un petit éditeur ouvert dans le navigateur.
 
 ## Au quotidien
 
-1. **Double-clique `Galerie.command`** dans le Finder. L'éditeur s'ouvre
-   dans le navigateur ; fermer la fenêtre de Terminal l'arrête.
+1. **Clique sur Galerie dans le Dock** (ou double-clique `Galerie.app`).
+   L'éditeur s'ouvre dans le navigateur, sans fenêtre de Terminal. Pour
+   l'avoir dans le Dock : glisse `Galerie.app` dans la partie gauche du Dock,
+   **sans la déplacer** du dossier du site (elle en a besoin pour trouver
+   le reste).
 2. **Glisse des photos** dans l'éditeur, place-les, règle leur taille, leur
    angle et leur ordre d'empilement (↑ Avant / ↓ Arrière).
 3. **Enregistrer** (ou Cmd + S) écrit `photo/layout.json`.
@@ -21,6 +24,13 @@ L'édition se fait en local, dans un petit éditeur ouvert dans le navigateur.
 5. **↗ Publier** enregistre, met le site en ligne, puis **vérifie** que
    GitHub sert bien la nouvelle version (cela peut prendre jusqu'à deux
    minutes). Le journal dit clairement si quelque chose ne va pas.
+
+Il n'y a rien à arrêter : le serveur local s'arrête tout seul environ une
+minute après la fermeture du dernier onglet de l'éditeur (jamais pendant
+une publication). L'aperçu s'arrête avec lui. Si le serveur disparaît alors
+que l'éditeur est ouvert, un bandeau rouge le signale : relancer Galerie
+suffit, les modifications en cours sont conservées dans l'onglet. Le
+journal du serveur est dans `~/Library/Logs/Galerie.log` (app Console).
 
 Quelques comportements à connaître :
 
@@ -58,7 +68,8 @@ déposée dans `photo/photos/` sans être placée ne part pas en ligne.
 ## Organisation du code
 
 ```
-Galerie.command        lance le serveur local (éditeur :8000, aperçu :8001)
+Galerie.app            lance le serveur local (éditeur :8000, aperçu :8001) ;
+                       c'est un simple script : Contents/MacOS/Galerie
 publish.sh             met le site en ligne (voir plus bas)
 index.html             page d'accueil du site
 photo/
@@ -132,7 +143,11 @@ git clone https://github.com/seykamoonlight/seykamoonlight.github.io.git
 ```
 
 puis recopie tes originaux depuis ta sauvegarde dans `photo/photos/`. Les
-vignettes se refabriquent au premier lancement de `Galerie.command`.
+vignettes se refabriquent au premier lancement de `Galerie.app`.
+
+Un dépôt cloné avec git s'ouvre directement. S'il a été téléchargé en .zip
+depuis le site de GitHub, macOS bloque `Galerie.app` au premier lancement :
+Réglages Système → Confidentialité et sécurité → « Ouvrir quand même ».
 
 ## Ancien historique
 
