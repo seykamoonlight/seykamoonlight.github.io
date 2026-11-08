@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Gabriel B. — Photographie</title>
+  <link rel="stylesheet" href="viewer.css">
+</head>
+<body>
+
+<aside id="panel">
+  <div id="panel-inner">
+    <h1 id="site-title">Gabriel B.</h1>
+    <img id="site-qr" src="qr.svg" alt="QR code : seykamoonlight.github.io/photo">
+  </div>
+  <footer id="panel-footer">
+    <p><a href="mailto:gabriel.bauduin@gmail.com">gabriel.bauduin@gmail.com</a></p>
+  </footer>
+</aside>
+
+<button id="menu-btn" aria-label="Menu" onclick="togglePanel()">
+  <span></span><span></span><span></span>
+</button>
+
+<div id="scroll-area">
+  <!-- rempli par viewer.js à partir de layout.json -->
+  <div id="column"></div>
+</div>
+
+<div id="lightbox">
+  <div class="frame">
+    <img id="lightbox-img" src="" alt="">
+  </div>
+  <button id="share-btn" onclick="sharePhoto()">↗ Partager</button>
+  <span id="share-toast"></span>
+</div>
+
+<div id="error">
+  La galerie n'a pas pu être chargée
+  <span>réessayez dans un instant</span>
+</div>
+
+<script src="viewer.js"></script>
+</body>
+</html>
