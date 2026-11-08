@@ -1,0 +1,17 @@
+# macOS
+.DS_Store
+
+# Photos. Le dépôt est public : les originaux restent sur ce Mac (pense à
+# les sauvegarder, par exemple avec Time Machine) et les dérivées se
+# refabriquent avec photo/build_web.py. Rien de tout ça ne va dans git.
+photo/photos/
+photo/corbeille/
+
+# Copie de travail de la branche gh-pages, gérée par publish.sh
+.gh-pages/
+
+# Python
+__pycache__/
+
+# Sauvegarde de l'ancien historique git (voir README.md)
+historique-git-ancien.bundle

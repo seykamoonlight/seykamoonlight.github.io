@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Éditeur — Galerie</title>
+  <link rel="stylesheet" href="editor.css">
+</head>
+<body>
+
+<div id="toolbar">
+  <button onclick="document.getElementById('load-photos').click()">+ Ajouter</button>
+  <input type="file" id="load-photos" multiple accept="image/jpeg,image/png,image/webp">
+
+  <button onclick="location.reload()" title="Relire layout.json depuis le disque">Recharger</button>
+  <button onclick="removeSpaceTop()" title="Remonter toutes les photos">− espace ↑</button>
+  <button onclick="addSpaceTop()" title="Descendre toutes les photos">+ espace ↑</button>
+
+  <!-- n'apparaissent que lorsqu'une photo est sélectionnée -->
+  <div id="size-control" class="control">
+    <span>Taille</span>
+    <input type="range" id="size-slider" min="0.3" max="2.5" step="0.05" value="1" oninput="onSizeChange()">
+    <span id="size-value">100%</span>
+  </div>
+
+  <div id="rotation-control" class="control">
+    <span>Angle</span>
+    <input type="range" id="rotation-slider" min="-15" max="15" step="0.5" value="0" oninput="onRotationChange()">
+    <span id="rotation-value">0°</span>
+  </div>
+
+  <div id="stack-control" class="control">
+    <span>Pile</span>
+    <button onclick="bringToFront()" title="Passer au-dessus de toutes les autres">↑ Avant</button>
+    <button onclick="sendToBack()" title="Passer sous toutes les autres">↓ Arrière</button>
+  </div>
+
+  <button id="delete-btn" class="danger" onclick="deleteSelected()">Retirer</button>
+
+  <button class="primary" onclick="saveLayout()" title="Cmd + S">Enregistrer</button>
+  <button id="publish-btn" class="publish" onclick="publish()">↗ Publier</button>
+
+  <span id="status">aucune photo</span>
+</div>
+
+<pre id="publish-log"></pre>
+
+<div id="canvas-wrapper">
+  <div id="canvas">
+    <div id="panel-placeholder"></div>
+    <div id="column-guide"></div>
+    <div id="hint">
+      <span id="hint-text">Glisse des photos ici pour commencer</span>
+      <span id="hint-sub">glisser pour placer · cliquer pour régler la taille, l'angle et la pile</span>
+    </div>
+  </div>
+</div>
+
+<script src="editor.js"></script>
+</body>
+</html>

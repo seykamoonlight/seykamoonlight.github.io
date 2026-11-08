@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gabriel B.</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root { --bg: #e8e4de; }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      font-family: 'Courier New', monospace;
+    }
+
+    body {
+      background-image:
+        radial-gradient(circle at 20% 60%, rgba(255,255,255,0.22) 0%, transparent 55%),
+        radial-gradient(circle at 80% 20%, rgba(0,0,0,0.04) 0%, transparent 50%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card {
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+      align-items: flex-start;
+    }
+
+    h1 {
+      font-size: 13px;
+      font-weight: normal;
+      letter-spacing: 0.18em;
+      color: #2a2a2a;
+    }
+
+    nav {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    nav a {
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      color: #888;
+      text-decoration: none;
+      text-transform: uppercase;
+      transition: color 0.2s;
+    }
+
+    nav a:hover { color: #2a2a2a; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Gabriel B.</h1>
+    <nav>
+      <a href="/photo">Photographie →</a>
+    </nav>
+  </div>
+</body>
+</html>
