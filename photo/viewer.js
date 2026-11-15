@@ -117,6 +117,7 @@ function openLightbox(item) {
   // On montre aussitôt la vignette, déjà en cache, floutée ; la version
   // 2000 px la remplace dès qu'elle est arrivée.
   lightbox.classList.remove('active');
+  placeInView(lightbox);
   lightboxImg.src = thumbOf(item);
   lightboxImg.classList.add('loading');
   void lightbox.offsetHeight; // force le navigateur à rejouer l'animation d'ouverture
@@ -168,5 +169,25 @@ document.addEventListener('keydown', e => {
 // ── Panneau (mobile) ────────────────────────────────────────────────────────
 
 function togglePanel() {
-  document.getElementById('panel').classList.toggle('open');
+  const panel = document.getElementById('panel');
+  if (!panel.classList.contains('open')) placeInView(panel);
+  panel.classList.toggle('open');
 }
+
+// Le lightbox et le panneau (sur téléphone) ne sont pas fixés à l'écran mais
+// posés dans la page, pour que Safari sur iPhone laisse voir à travers ses
+// barres (voir viewer.css) : on les place là où l'on se trouve. La page est
+// bloquée tant qu'ils sont ouverts, cette position reste donc la bonne.
+function placeInView(el) {
+  el.style.setProperty('--panel-top', scrollY + 'px');
+  el.style.setProperty('--view-h', innerHeight + 'px');
+  el.style.top = el === lightbox ? scrollY + 'px' : '';
+  el.style.height = el === lightbox ? innerHeight + 'px' : '';
+}
+
+// rotation du téléphone, fenêtre redimensionnée
+addEventListener('resize', () => {
+  if (lightbox.classList.contains('active')) placeInView(lightbox);
+  const panel = document.getElementById('panel');
+  if (panel.classList.contains('open')) placeInView(panel);
+});

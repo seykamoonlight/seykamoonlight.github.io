@@ -16,10 +16,16 @@ html {
 
 html::-webkit-scrollbar { display: none; }
 
-/* pas de défilement de la page derrière une photo ouverte en grand */
+/* Sur iPhone, dès qu'un élément FIXÉ à l'écran (position: fixed) touche le
+   haut ou le bas, Safari peint ses barres de sa couleur, en opaque. Le voile
+   du lightbox et le panneau (sur téléphone) sont donc posés DANS la page, à
+   l'endroit où l'on se trouve (viewer.js les y place), et la page est
+   bloquée tant qu'ils sont ouverts : les barres les laissent voir en
+   transparence, comme les photos. */
 html:has(#lightbox.active) { overflow: hidden; }
 
 body {
+  position: relative; /* référence du voile ci-dessous */
   min-height: 100%;
   /* sur iPhone, Safari teinte ses barres avec cette couleur */
   background-color: var(--bg);
@@ -36,11 +42,7 @@ body {
   position: fixed;
   top: 0; left: 0; bottom: 0;
   width: var(--panel-w);
-  /* Couleur posée en image et non en background-color : sinon, sur iPhone,
-     Safari prend ce panneau (fixe, collé en haut et en bas de l'écran) pour
-     une barre de la page, et rend ses propres barres opaques dès qu'il est
-     ouvert. Le rendu est identique. */
-  background: linear-gradient(var(--bg), var(--bg));
+  background: var(--bg);
   border-right: 1px solid rgba(0,0,0,0.08);
   z-index: 100;
   display: flex;
@@ -167,13 +169,33 @@ body {
 }
 
 /* ── lightbox ── */
-#lightbox {
-  position: fixed;
+
+/* le voile sombre couvre toute la page, y compris sous les barres de Safari */
+body::after {
+  content: '';
+  position: absolute;
   inset: 0;
-  /* Voile sombre posé en image, et fondu par l'opacité : avec un
-     background-color, Safari sur iPhone recopierait ce noir dans ses barres
-     au lieu de laisser voir le voile à travers (voir #panel). */
-  background: linear-gradient(rgba(0,0,0,0.88), rgba(0,0,0,0.88));
+  background: rgba(0,0,0,0.88);
+  z-index: 999;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.35s ease, visibility 0.35s;
+}
+
+body:has(#lightbox.active)::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* la photo, centrée dans la partie visible de la page (top et height posés
+   par viewer.js à l'ouverture) */
+#lightbox {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  top: 0;
+  height: 100vh;
   opacity: 0;
   z-index: 1000;
   cursor: pointer;
@@ -283,7 +305,19 @@ body {
      de cette couleur, se fond alors exactement dans le fond. */
   body { background-image: none; }
 
+  /* Posé dans la page (voir en haut), à la hauteur où l'on se trouve
+     (--panel-top, --view-h : viewer.js), et prolongé de --bleed en haut et
+     en bas pour passer aussi sous les barres de Safari. */
+  html:has(#panel.open) { overflow: hidden; }
+
   #panel {
+    --bleed: 150px;
+    position: absolute;
+    top: calc(var(--panel-top, 0px) - var(--bleed));
+    bottom: auto;
+    height: calc(var(--view-h, 100vh) + 2 * var(--bleed));
+    padding-top: calc(48px + var(--bleed));
+    padding-bottom: calc(48px + var(--bleed));
     transform: translateX(-100%);
     transition: transform 0.28s ease;
     box-shadow: none;
