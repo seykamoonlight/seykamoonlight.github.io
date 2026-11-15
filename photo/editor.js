@@ -21,6 +21,9 @@ const NATURAL_BOX = 210;   // taille « 100 % » : le grand côté de la photo f
 const DEFAULT_SIZE = 0.65; // largeur utilisée tant que les dimensions sont inconnues
 const DRAG_THRESHOLD = 4;  // px à parcourir avant qu'un clic devienne un glissé
 const SPACE_STEP = 0.5;    // décalage appliqué par les boutons « espace en haut »
+const TOP_MARGIN = 0.15;   // espace laissé au-dessus de la photo la plus haute
+const PILE_STEP = 0.08;    // décalage entre deux photos de la pile des nouvelles
+const PILE_CLEARANCE = 0.6; // place laissée entre la pile et les photos déjà placées
 
 // ── Éléments de la page ─────────────────────────────────────────────────────
 
@@ -153,6 +156,7 @@ function addPhoto({ filename, url, x, y, size = null, rotation = 0, z, w = null,
 function removePhoto(photo) {
   if (photo === selected) deselect();
   photos.splice(photos.indexOf(photo), 1);
+  pile.delete(photo);
   photo.el.remove();
   if (!photos.length) hint.classList.remove('hidden');
 }
@@ -280,6 +284,7 @@ function bindDrag(photo) {
     const moved = drag.moved;
     drag = null;
     if (!moved) return; // c'était un clic : la position ne change pas
+    pile.delete(photo);   // elle est placée : elle ne fait plus partie de la pile
 
     const width = (photo.size ?? DEFAULT_SIZE) * COLUMN_W;
     photo.x = (parseFloat(el.style.left) + width / 2 - columnLeft()) / COLUMN_W;
@@ -316,14 +321,28 @@ function shiftAll(dy) {
 
 // ── Ajout de photos ─────────────────────────────────────────────────────────
 
-// Pré-placement : les nouvelles photos arrivent sous la pile existante et
-// réparties en largeur (suite du nombre d'or), au lieu de s'empiler toutes
-// au même endroit. Ce n'est qu'un point de départ, à ajuster à la main.
-function nextPosition() {
-  const bottom = photos.length ? Math.max(...photos.map(p => p.y + photoHeight(p))) : 0.15;
+// Pré-placement : les nouvelles photos arrivent TOUT EN HAUT de la colonne,
+// en une pile serrée : chacune un peu au-dessus de la précédente et à peine
+// décalée en largeur, juste assez pour qu'on puisse attraper chacune. La
+// première d'une pile garde ses distances avec les photos déjà placées, pour
+// ne pas les recouvrir. L'éditeur fait la place nécessaire en haut, comme le
+// bouton « + espace ».
+//
+// Une photo quitte la pile dès qu'on la déplace (voir bindDrag).
+const pile = new Set();
+
+function makeRoomAtTop() {
+  let y = TOP_MARGIN;
+  if (photos.length) {
+    const highest = photos.reduce((a, b) => (b.y < a.y ? b : a));
+    y = highest.y - (pile.has(highest) ? PILE_STEP : PILE_CLEARANCE);
+  }
+  const shift = Math.max(0, TOP_MARGIN - y);
+  shiftAll(shift);
   return {
-    x: -0.2 + ((photos.length * 0.6180339887) % 1) * 1.4,
-    y: bottom + 0.15,
+    x: 0.5 + (((photos.length * 0.6180339887) % 1) - 0.5) * 0.16,
+    y: y + shift,
+    shift,
   };
 }
 
@@ -341,14 +360,17 @@ async function addFiles(files) {
 async function uploadPhoto(file) {
   // Affichage immédiat depuis le fichier local, avant même la fin de l'envoi.
   const blobUrl = URL.createObjectURL(file);
+  const { x, y, shift } = makeRoomAtTop();
   const photo = addPhoto({
     filename: file.name,
     url: blobUrl,
-    ...nextPosition(),
-    z: photos.length + 1,
+    x, y,
+    z: photos.length + 1, // au-dessus de toutes les autres
   });
+  pile.add(photo);
   updateStatusCount();
   ensureCanvasHeight();
+  photo.el.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
   try {
     const res = await fetch(`/upload-photo?name=${encodeURIComponent(file.name)}`, {
@@ -364,6 +386,7 @@ async function uploadPhoto(file) {
     // On retire la photo : la garder enregistrerait dans le layout un
     // fichier qui n'existe pas sur le disque.
     removePhoto(photo);
+    shiftAll(-shift); // et on reprend la place faite pour elle
     URL.revokeObjectURL(blobUrl);
     setStatus(`✗ ${file.name} : ${e.message}`, 6000);
   }
