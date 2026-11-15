@@ -1,0 +1,340 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --panel-w: 330px;
+  --bg: #e8e4de;
+}
+
+/* C'est la PAGE elle-même qui défile, pas une boîte intérieure : c'est la
+   condition pour que, sur iPhone, les photos passent sous la barre d'état et
+   sous la barre d'adresse de Safari au lieu d'y laisser une bande unie. */
+html {
+  background: var(--bg);
+  font-family: 'Courier New', monospace;
+  scrollbar-width: none;
+}
+
+html::-webkit-scrollbar { display: none; }
+
+/* Sur iPhone, dès qu'un élément FIXÉ à l'écran (position: fixed) touche le
+   haut ou le bas, Safari peint ses barres de sa couleur, en opaque. Le voile
+   du lightbox et le panneau (sur téléphone) sont donc posés DANS la page, à
+   l'endroit où l'on se trouve (viewer.js les y place), et la page est
+   bloquée tant qu'ils sont ouverts : les barres les laissent voir en
+   transparence, comme les photos. */
+html:has(#lightbox.active) { overflow: hidden; }
+
+body {
+  position: relative; /* référence du voile ci-dessous */
+  min-height: 100%;
+  /* sur iPhone, Safari teinte ses barres avec cette couleur */
+  background-color: var(--bg);
+  /* fixed : le léger dégradé reste attaché à l'écran pendant le défilement
+     (iOS l'ignore et l'étale sur toute la page, ce qui revient au même) */
+  background-image:
+    radial-gradient(circle at 20% 60%, rgba(255,255,255,0.22) 0%, transparent 55%),
+    radial-gradient(circle at 80% 20%, rgba(0,0,0,0.04) 0%, transparent 50%);
+  background-attachment: fixed;
+}
+
+/* ── panneau de gauche ── */
+#panel {
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  width: var(--panel-w);
+  background: var(--bg);
+  border-right: 1px solid rgba(0,0,0,0.08);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  padding: 48px 28px;
+  padding-top: calc(48px + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(48px + env(safe-area-inset-bottom, 0px));
+}
+
+#site-title {
+  font-size: 13px;
+  font-weight: normal;
+  letter-spacing: 0.18em;
+  color: #2a2a2a;
+  margin-bottom: 20px;
+}
+
+#site-qr {
+  width: 100%;
+  height: auto;
+  display: block;
+  margin-bottom: 20px;
+}
+
+#panel-footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#panel-footer p, #panel-footer a {
+  font-size: 9px;
+  color: #aaa;
+  letter-spacing: 0.08em;
+  line-height: 1.5;
+}
+
+#panel-footer a {
+  color: #888;
+  text-decoration: none;
+  word-break: break-all;
+}
+
+#panel-footer a:hover { color: #555; }
+
+/* ── bouton menu (mobile uniquement) ── */
+#menu-btn {
+  display: none;
+  position: fixed;
+  top: calc(18px + env(safe-area-inset-top, 0px));
+  left: calc(18px + env(safe-area-inset-left, 0px));
+  z-index: 200;
+  background: none;
+  border: none;
+  cursor: pointer;
+  flex-direction: column;
+  gap: 5px;
+  padding: 6px;
+}
+
+#menu-btn span {
+  display: block;
+  width: 20px;
+  height: 1.5px;
+  background: #555;
+  transition: background 0.2s;
+}
+
+#menu-btn:hover span { background: #222; }
+
+/* ── zone des photos ── */
+#scroll-area {
+  margin-left: var(--panel-w);
+  /* clip et non hidden : coupe ce qui déborde sur les côtés (photos tournées)
+     sans faire de cette zone une boîte qui défile à part */
+  overflow-x: clip;
+  display: flex;
+  justify-content: center;
+}
+
+/* ── colonne ──
+   --col est LA largeur de référence : toutes les positions du layout en
+   sont des multiples (voir viewer.js). 420 px = COLUMN_W dans editor.js. */
+#column {
+  --col: 420px;
+  position: relative;
+  flex-shrink: 0;
+  width: var(--col);
+  margin-top: 10vh;
+  overflow: visible;
+  /* Les rangs d'empilement des photos (1 à n, n = nombre de photos) ne
+     comptent qu'À L'INTÉRIEUR de la colonne. Sans cela, dès qu'il y a plus
+     de 100 photos, elles passent devant le panneau (100), le bouton menu
+     (200), voire le lightbox (1000). */
+  isolation: isolate;
+}
+
+/* ── photos ── */
+.photo {
+  position: absolute;
+  cursor: pointer;
+}
+
+/* au survol, la photo passe devant toutes ses voisines (la colonne est
+   isolée : cette valeur ne joue qu'entre photos) */
+.photo:hover { z-index: 1000000 !important; }
+
+.frame {
+  background: white;
+  padding: 8px;
+  box-shadow: 3px 3px 14px rgba(0,0,0,0.20);
+  transition: box-shadow 0.2s ease;
+}
+
+.photo:hover .frame {
+  box-shadow: 6px 8px 28px rgba(0,0,0,0.28);
+}
+
+.frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* ── lightbox ── */
+
+/* le voile sombre couvre toute la page, y compris sous les barres de Safari */
+body::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.88);
+  z-index: 999;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.35s ease, visibility 0.35s;
+}
+
+body:has(#lightbox.active)::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* la photo, centrée dans la partie visible de la page (top et height posés
+   par viewer.js à l'ouverture) */
+#lightbox {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  top: 0;
+  height: 100vh;
+  opacity: 0;
+  z-index: 1000;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+
+#lightbox.active {
+  visibility: visible;
+  pointer-events: all;
+  opacity: 1;
+}
+
+#lightbox .frame {
+  padding: 12px;
+  cursor: default;
+  opacity: 0;
+  transform: scale(0.94);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: inline-flex;
+}
+
+#lightbox.active .frame {
+  opacity: 1;
+  transform: scale(1);
+}
+
+#lightbox-img {
+  transition: filter 0.4s ease;
+}
+
+#lightbox-img.loading {
+  filter: blur(8px);
+}
+
+#lightbox .frame img {
+  max-width: calc(90vw - 24px);
+  max-height: calc(90vh - 24px);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
+/* ── partage ── */
+#share-btn {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  background: rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.7);
+  border: 1px solid rgba(255,255,255,0.2);
+  padding: 7px 14px;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  transition: background 0.2s, color 0.2s;
+}
+
+#share-btn:hover {
+  background: rgba(255,255,255,0.22);
+  color: white;
+}
+
+#share-toast {
+  position: absolute;
+  bottom: 62px;
+  right: 24px;
+  color: rgba(255,255,255,0.6);
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+#share-toast.visible { opacity: 1; }
+
+/* ── erreur de chargement ── */
+#error {
+  display: none;
+  position: fixed;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 12px;
+  color: #999;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+#error.visible { display: flex; }
+#error span { color: #777; font-size: 11px; }
+
+/* ── mobile ── */
+@media (max-width: 700px) {
+  /* Sur téléphone, fond uni : la barre de Safari en haut de page, teintée
+     de cette couleur, se fond alors exactement dans le fond. */
+  body { background-image: none; }
+
+  /* Posé dans la page (voir en haut), à la hauteur où l'on se trouve
+     (--panel-top, --view-h : viewer.js), et prolongé de --bleed en haut et
+     en bas pour passer aussi sous les barres de Safari. */
+  html:has(#panel.open) { overflow: hidden; }
+
+  #panel {
+    --bleed: 150px;
+    position: absolute;
+    top: calc(var(--panel-top, 0px) - var(--bleed));
+    bottom: auto;
+    height: calc(var(--view-h, 100vh) + 2 * var(--bleed));
+    padding-top: calc(48px + var(--bleed));
+    padding-bottom: calc(48px + var(--bleed));
+    transform: translateX(-100%);
+    transition: transform 0.28s ease;
+    box-shadow: none;
+  }
+
+  #panel.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(0,0,0,0.12);
+  }
+
+  #menu-btn { display: flex; }
+
+  #scroll-area {
+    margin-left: 0;
+  }
+
+  #column {
+    --col: min(100vw, 420px);
+  }
+}
